@@ -54,6 +54,7 @@ def sessions(
             "renew_bradesco": RENEW_BRADESCO,
             "renewal": container.renewal.status(),
             "renewal_enabled": container.settings.session_renewal_enabled,
+            "auto_available": container.renewal.auto_available(),
         },
     )
 
@@ -74,6 +75,7 @@ def _renewal_response(
             "slug": slug,
             "renewal": container.renewal.status(),
             "renewal_enabled": container.settings.session_renewal_enabled,
+            "auto_available": container.renewal.auto_available(),
         },
     )
 
@@ -88,6 +90,19 @@ def renew_session(
     if slug != "bradesco":
         raise HTTPException(status_code=404, detail="Renovação não configurada")
     container.renewal.start()
+    return _renewal_response(request, templates, container, slug)
+
+
+@router.post("/sessions/{slug}/auto-login", response_class=HTMLResponse)
+def auto_login_session(
+    slug: str,
+    request: Request,
+    container: Container = Depends(get_container),
+    templates: Jinja2Templates = Depends(get_templates),
+):
+    if slug != "bradesco":
+        raise HTTPException(status_code=404, detail="Login automático não configurado")
+    container.renewal.start(auto=True)
     return _renewal_response(request, templates, container, slug)
 
 
