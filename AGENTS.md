@@ -396,7 +396,9 @@ DETECTADA → EM_ANALISE → AVISADA → REGULARIZADA
 - Página `/plugins` lista plugins carregados, versões, status e erros.
 - Página `/sessions` lista o status da sessão por portal e permite renovar:
   o botão abre o navegador, espera o login manual, salva o `state.json`
-  automaticamente e faz polling do resultado. Falha de sessão no `POST
+  automaticamente e faz polling do resultado. Também permite **forçar a
+  expiração** removendo o `state.json` local e o resultado da renovação para
+  testar o fluxo. Falha de sessão no `POST
   /collect` abre um aviso com os portais afetados e link para `/sessions`.
   O endpoint de renovação abre um navegador na máquina do servidor; não expor
   a aplicação publicamente sem autenticação.
@@ -453,8 +455,8 @@ renovação sem autenticação.
 
 Login automático: `BRADESCO_AUTO_LOGIN_ENABLED`,
 `BRADESCO_CREDENTIAL_SOURCE` (`keyring|env`), `BRADESCO_KEYRING_SERVICE`,
-`BRADESCO_KEYRING_USERNAME`, `BRADESCO_LOGIN` (CNPJ/login do campo
-CPF/CNPJ), `BRADESCO_LOGIN_USER` (CPF fallback), `BRADESCO_LOGIN_PASSWORD`,
+`BRADESCO_KEYRING_USERNAME`, `BRADESCO_LOGIN` (CNPJ da primeira página),
+`BRADESCO_LOGIN_USER` (CPF da segunda página), `BRADESCO_LOGIN_PASSWORD`,
 `BRADESCO_AUTO_LOGIN_HEADLESS`, `BRADESCO_AUTO_LOGIN_TIMEOUT_S`. Credenciais do portal ficam no keyring/Vault
 (nunca em código, `.env` commitado ou logs). O worker
 `tools/auto_login_bradesco.py` tenta preencher o login; se houver

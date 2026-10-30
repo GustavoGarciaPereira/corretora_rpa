@@ -173,13 +173,18 @@ automático**:
 uv run python -m corretor.cli credentials set bradesco
 ```
 
-O comando pede o CPF/CNPJ e a senha (sem eco) e grava no **keyring** do sistema,
-nunca no `.env` ou no banco. O backend tenta preencher o formulário em
-background e, se conseguir, salva o `state.json` automaticamente.
+O comando pede o CNPJ/login da corretora (primeira página), o CPF do usuário
+(segunda página) e a senha (sem eco), gravando no **keyring** do sistema, nunca
+no `.env` ou no banco. O backend tenta preencher as duas etapas em background e,
+se conseguir, salva o `state.json` automaticamente.
 
-Na fonte `env`, o campo CPF/CNPJ da primeira página usa **`BRADESCO_LOGIN`**
-(CNPJ/login da corretora) quando preenchido; `BRADESCO_LOGIN_USER` (CPF) fica
-como fallback. `BRADESCO_LOGIN_PASSWORD` é a senha.
+Na fonte `env`, a primeira página usa **`BRADESCO_LOGIN`** (CNPJ/login da
+corretora) e a segunda usa **`BRADESCO_LOGIN_USER`** (CPF do usuário).
+`BRADESCO_LOGIN_PASSWORD` é a senha. Se uma das identificações faltar, a outra
+é usada como fallback.
+
+A página `/sessions` também tem **Forçar expiração da sessão**: ela remove o
+`state.json` local para testar o fluxo de renovação sem esperar o portal expirar.
 
 Além do botão, a **coleta automática e o “Coletar agora”** tentam renovar a
 sessão sozinhos quando ela expira: fazem o login em background e repetem a
@@ -188,9 +193,9 @@ normal.
 
 Se o Bradesco exigir **reCAPTCHA/MFA**, o sistema não contorna: marca o status
 `captcha` e oferece **Renovar manualmente**. Para Vault, use
-`BRADESCO_CREDENTIAL_SOURCE=env` e injete `BRADESCO_LOGIN` (CNPJ/login),
-`BRADESCO_LOGIN_USER` (CPF fallback) e `BRADESCO_LOGIN_PASSWORD` no processo,
-sem commitar.
+`BRADESCO_CREDENTIAL_SOURCE=env` e injete `BRADESCO_LOGIN` (CNPJ),
+`BRADESCO_LOGIN_USER` (CPF) e `BRADESCO_LOGIN_PASSWORD` no processo, sem
+commitar.
 
 > Validar os termos de uso e a política de segurança da corretora antes de
 > armazenar credenciais do portal. O método mais seguro continua sendo a API

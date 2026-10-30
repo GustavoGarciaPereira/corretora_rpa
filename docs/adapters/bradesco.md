@@ -262,17 +262,29 @@ Não expor a aplicação publicamente sem autenticação.
 
 Se `BRADESCO_AUTO_LOGIN_ENABLED=true` e houver credenciais no cofre, a página
 `/sessions` mostra **Tentar login automático**. O backend executa
-`tools/auto_login_bradesco.py` em background, preenche CPF/CNPJ e senha e
-salva o `state.json` se a área logada aparecer.
+`tools/auto_login_bradesco.py` em background e percorre as duas etapas:
+
+1. primeira página: CNPJ/login da corretora em `#CpfCnpjTelaInicial` e
+   **Continuar**;
+2. segunda página (`login.bradescoseguros.com.br`): CPF do usuário em
+   `#input_cpf_cnpj`, senha em `#input_senha` e **Entrar**.
+
+Se o perfil pedir a senha ainda na primeira página (`#senha`), o worker também
+trata esse caminho. A sessão só é salva quando o path da URL contém
+`/arealogada`, permanece estável por alguns segundos e o menu autenticado
+(`Minha carteira`/`Meus Leads`) está visível; o parâmetro
+`target=...arealogada...` da página de login não é mais confundido com sucesso.
 
 - Credenciais: keyring (`corretor credentials set bradesco`) ou
-  `BRADESCO_CREDENTIAL_SOURCE=env` com `BRADESCO_LOGIN` (CNPJ/login do campo
-  CPF/CNPJ), `BRADESCO_LOGIN_USER` (CPF fallback) e
+  `BRADESCO_CREDENTIAL_SOURCE=env` com `BRADESCO_LOGIN` (CNPJ da primeira
+  página), `BRADESCO_LOGIN_USER` (CPF da segunda página) e
   `BRADESCO_LOGIN_PASSWORD` injetados por Vault.
 - Se o portal exigir reCAPTCHA/MFA, o worker retorna `captcha` e **não
   contorna**; a UI oferece a renovação manual.
 - A coleta automática e o “Coletar agora” também tentam renovar sozinhos
   quando a sessão expira (`NEEDS_ATTENTION`) e repetem a coleta após sucesso.
+- O botão **Forçar expiração da sessão** remove o `state.json` local e o
+  resultado da renovação para testar o fluxo sem esperar o portal expirar.
 - O worker não usa a senha em argumentos de linha de comando e não a grava em
   logs. Validar os termos de uso antes de habilitar.
 

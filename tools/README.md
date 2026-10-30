@@ -95,7 +95,9 @@ manual novamente. O script não automatiza captcha.
 
 Renovação assistida usada pelo botão **Renovar sessão agora** em `/sessions`.
 Abre o navegador visível, espera o login manual e salva o `state.json`
-automaticamente quando a área logada aparece.
+automaticamente quando a área logada aparece. A validação usa o path real da
+URL (`/arealogada`), um período de estabilidade e o menu autenticado visível;
+o parâmetro `target` da tela de login não conta como sucesso.
 
 ```bash
 uv run python tools/renew_bradesco.py \
@@ -123,14 +125,15 @@ argumentos de linha de comando.
 uv run python -m corretor.cli credentials set bradesco
 ```
 
-O worker preenche CPF/CNPJ e senha, tenta entrar e salva o `state.json` em caso
-de sucesso. Se o portal exigir reCAPTCHA/MFA, retorna `captcha` e não contorna;
-a UI oferece a renovação manual. O mesmo vale para credenciais rejeitadas
-(`credentials`).
+O worker percorre as duas etapas: CNPJ da corretora na primeira página
+(`BRADESCO_LOGIN`) e CPF do usuário + senha na segunda (`BRADESCO_LOGIN_USER` /
+`BRADESCO_LOGIN_PASSWORD`). Se o portal exigir reCAPTCHA/MFA, retorna `captcha`
+e não contorna; a UI oferece a renovação manual. O mesmo vale para credenciais
+rejeitadas (`credentials`).
 
 A senha nunca é impressa, gravada em log ou passada por argumento. Para Vault,
-use `BRADESCO_CREDENTIAL_SOURCE=env` e injete `BRADESCO_LOGIN_USER` /
-`BRADESCO_LOGIN_PASSWORD` no processo.
+use `BRADESCO_CREDENTIAL_SOURCE=env` e injete `BRADESCO_LOGIN`,
+`BRADESCO_LOGIN_USER` e `BRADESCO_LOGIN_PASSWORD` no processo.
 
 ### Depois da descoberta
 
