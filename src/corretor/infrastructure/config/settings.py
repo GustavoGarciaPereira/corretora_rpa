@@ -39,6 +39,7 @@ class Settings(BaseSettings):
         "https://wwwn.bradescoseguros.com.br/pnegocios/wps/"
         "PA_BSPN-DBoardAuto-PU/api/propostas/pendentes/v1/view"
     )
+    bradesco_collect_parcelas: bool = False
     bradesco_collect_proposals: bool = True
     bradesco_headless: bool = True
     bradesco_timeout_ms: int = 60_000
@@ -57,6 +58,7 @@ class Settings(BaseSettings):
             "bradesco_state_path": str(self.bradesco_state_path),
             "bradesco_endpoint": self.bradesco_endpoint,
             "bradesco_proposals_endpoint": self.bradesco_proposals_endpoint,
+            "bradesco_collect_parcelas": self.bradesco_collect_parcelas,
             "bradesco_collect_proposals": self.bradesco_collect_proposals,
             "bradesco_headless": self.bradesco_headless,
             "bradesco_timeout_ms": self.bradesco_timeout_ms,

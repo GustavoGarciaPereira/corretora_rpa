@@ -28,6 +28,7 @@ class BradescoAdapter:
         self.state_path = Path(str(context.get("bradesco_state_path", ""))).expanduser()
         self.endpoint = str(context.get("bradesco_endpoint", ""))
         self.proposals_endpoint = str(context.get("bradesco_proposals_endpoint", ""))
+        self.collect_parcelas = bool(context.get("bradesco_collect_parcelas", False))
         self.collect_proposals = bool(context.get("bradesco_collect_proposals", True))
         self.headless = bool(context.get("bradesco_headless", True))
         self.timeout_ms = int(context.get("bradesco_timeout_ms", 60_000))
@@ -45,7 +46,11 @@ class BradescoAdapter:
         return response
 
     def fetch_pending(self) -> list[RawInstallment]:
-        if not self.endpoint:
+        if not self.collect_parcelas and not self.collect_proposals:
+            raise AdapterNotConfigured(
+                "coleta do Bradesco desativada: habilite parcelas ou propostas"
+            )
+        if self.collect_parcelas and not self.endpoint:
             raise AdapterNotConfigured("BRADESCO_ENDPOINT não configurado")
         if self.collect_proposals and not self.proposals_endpoint:
             raise AdapterNotConfigured("BRADESCO_PROPOSALS_ENDPOINT não configurado")
@@ -77,8 +82,9 @@ class BradescoAdapter:
                     storage_state=str(self.state_path),
                 )
                 try:
-                    response = self._get(context, self.endpoint, "application/json")
-                    items.extend(map_payload(response.json()))
+                    if self.collect_parcelas:
+                        response = self._get(context, self.endpoint, "application/json")
+                        items.extend(map_payload(response.json()))
 
                     if self.collect_proposals:
                         proposals = self._get(context, self.proposals_endpoint, "text/html")
