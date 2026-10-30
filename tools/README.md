@@ -67,6 +67,30 @@ Em `data/discovery/<slug>/<timestamp>/`:
 pessoais e tokens de sessão**. A pasta `data/` é ignorada pelo Git; não
 compartilhe nem commite esses arquivos.
 
+## `capture_bradesco_parcelas.py`
+
+Captura específica da lista **Parcelas em Atraso** do Bradesco Auto. Reutiliza
+um `state.json` já autenticado, fecha o modal promocional (ex.: Seguros Friday)
+e o banner de cookies (`#adopt-reject-all-button`), clica em “Ver detalhes” do
+card e salva o payload JSON de `/api/parcelas/v1/list`.
+
+```bash
+python3.12 tools/capture_bradesco_parcelas.py \
+  --url "<url-da-area-auto>" \
+  --state data/discovery/bradesco/<timestamp>/state.json
+```
+
+Saída em `data/discovery/bradesco/<timestamp>/`:
+
+- `page.html`, `page.png`, `trace.zip`, `state.json`
+- `network.jsonl`
+- `payloads/` com os corpos das chamadas de API
+- `payloads.json` com o índice dos corpos
+- `summary.json`
+
+A sessão pode expirar; nesse caso o script avisa e é necessário fazer login
+manual novamente. O script não automatiza captcha.
+
 ### Depois da descoberta
 
 Preencha `docs/adapters/<slug>.md` com:

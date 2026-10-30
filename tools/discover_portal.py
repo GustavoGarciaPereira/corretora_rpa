@@ -18,17 +18,15 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-from datetime import datetime, timezone
+from contextlib import suppress
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from playwright.async_api import Browser, BrowserContext, Page, Response, async_playwright
 
 PORTALS = {
-    "bradesco": (
-        "https://wwwn.bradescoseguros.com.br/pnegocios2/wps/portal/"
-        "portaldenegociosnovo/"
-    ),
+    "bradesco": ("https://wwwn.bradescoseguros.com.br/pnegocios2/wps/portal/portaldenegociosnovo/"),
     "allianz": "https://www.allianznet.com.br/ngx-azb-epac/public/home",
 }
 
@@ -55,15 +53,11 @@ def _write_json(path: Path, data: object) -> None:
     )
 
 
-async def _open_browser(
-    playwright, channel: str, headless: bool
-) -> tuple[Browser, str]:
+async def _open_browser(playwright, channel: str, headless: bool) -> tuple[Browser, str]:
     """Abre o Chrome do sistema; se falhar, tenta o Chromium do Playwright."""
     if channel:
         try:
-            browser = await playwright.chromium.launch(
-                headless=headless, channel=channel
-            )
+            browser = await playwright.chromium.launch(headless=headless, channel=channel)
             return browser, channel
         except Exception as exc:  # noqa: BLE001 - fallback intencional
             print(f"[aviso] não foi possível abrir o canal '{channel}': {exc}")
@@ -80,8 +74,11 @@ async def discover(args: argparse.Namespace) -> int:
             f"Use --url ou um slug conhecido: {', '.join(sorted(PORTALS))}."
         )
         return 2
+    if args.state and not Path(args.state).exists():
+        print(f"[erro] storage_state não encontrado: {args.state}")
+        return 2
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     output_dir = Path(args.output_root) / args.slug / timestamp
     output_dir.mkdir(parents=True, exist_ok=True)
     network_path = output_dir / "network.jsonl"
@@ -94,7 +91,7 @@ async def discover(args: argparse.Namespace) -> int:
         if request.resource_type not in {"xhr", "fetch", "document"}:
             return
         entry = {
-            "ts": datetime.now(timezone.utc).isoformat(),
+            "ts": datetime.now(UTC).isoformat(),
             "method": request.method,
             "resource_type": request.resource_type,
             "url": _safe_url(response.url),
@@ -108,20 +105,21 @@ async def discover(args: argparse.Namespace) -> int:
     def on_navigation(frame) -> None:
         navigations.append(
             {
-                "ts": datetime.now(timezone.utc).isoformat(),
+                "ts": datetime.now(UTC).isoformat(),
                 "url": _safe_url(frame.url),
             }
         )
 
     async with async_playwright() as playwright:
-        browser, channel_used = await _open_browser(
-            playwright, args.channel, args.headless
-        )
-        context: BrowserContext = await browser.new_context(
-            locale="pt-BR",
-            timezone_id="America/Sao_Paulo",
-            viewport={"width": 1440, "height": 900},
-        )
+        browser, channel_used = await _open_browser(playwright, args.channel, args.headless)
+        context_kwargs: dict[str, object] = {
+            "locale": "pt-BR",
+            "timezone_id": "America/Sao_Paulo",
+            "viewport": {"width": 1440, "height": 900},
+        }
+        if args.state:
+            context_kwargs["storage_state"] = args.state
+        context: BrowserContext = await browser.new_context(**context_kwargs)
         page: Page = await context.new_page()
         page.on("response", on_response)
         page.on("framenavigated", on_navigation)
@@ -133,7 +131,20 @@ async def discover(args: argparse.Namespace) -> int:
         print(f"[navegador] {channel_used} (headless={args.headless})")
         await page.goto(start_url, wait_until="domcontentloaded", timeout=args.timeout)
 
-        if not args.no_wait:
+        if args.pause:
+            if args.headless:
+                print("[erro] --pause exige navegador visível (sem --headless).")
+                await context.close()
+                await browser.close()
+                return 2
+            print("\n" + "=" * 72)
+            print("FAÇA O LOGIN MANUALMENTE NO NAVEGADOR.")
+            print("Navegue até a tela desejada (ex.: Propostas Pendentes).")
+            print("Depois, clique em RESUME na janela do Playwright Inspector.")
+            print("Nenhuma senha é solicitada ou gravada por este script.")
+            print("=" * 72 + "\n")
+            await page.pause()
+        elif not args.no_wait:
             print("\n" + "=" * 72)
             print("FAÇA O LOGIN MANUALMENTE NO NAVEGADOR.")
             print("Navegue até a tela de parcelas pendentes da seguradora.")
@@ -144,10 +155,8 @@ async def discover(args: argparse.Namespace) -> int:
         else:
             await page.wait_for_timeout(args.settle_ms)
 
-        try:
+        with suppress(Exception):
             await page.wait_for_load_state("networkidle", timeout=8000)
-        except Exception:  # noqa: BLE001 - portal pode manter conexões abertas
-            pass
         await page.wait_for_timeout(args.settle_ms)
 
         final_url = _safe_url(page.url)
@@ -164,8 +173,7 @@ async def discover(args: argparse.Namespace) -> int:
         await context.storage_state(path=str(output_dir / "state.json"))
 
         captcha_detected = any(
-            "recaptcha" in frame["url"].lower()
-            or "hcaptcha" in frame["url"].lower()
+            "recaptcha" in frame["url"].lower() or "hcaptcha" in frame["url"].lower()
             for frame in frames
         )
         summary = {
@@ -219,6 +227,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--slug", required=True, help="Nome curto, ex.: bradesco")
     parser.add_argument("--url", default=None, help="URL inicial do portal")
     parser.add_argument(
+        "--state",
+        default=None,
+        help="Caminho de um storage_state.json para reutilizar a sessão",
+    )
+    parser.add_argument(
         "--channel",
         default="chrome",
         help="Canal do navegador (chrome, chromium ou vazio para o bundled)",
@@ -237,6 +250,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-wait",
         action="store_true",
         help="Não espera ENTER; captura após o carregamento (útil para smoke test)",
+    )
+    parser.add_argument(
+        "--pause",
+        action="store_true",
+        help="Abre o Playwright Inspector; use Resume para capturar",
     )
     parser.add_argument(
         "--settle-ms",
