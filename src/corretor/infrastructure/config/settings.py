@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     bradesco_credential_source: str = "keyring"  # keyring | env
     bradesco_keyring_service: str = "corretor-rpa"
     bradesco_keyring_username: str = "bradesco-login"
+    bradesco_login: str = ""
     bradesco_login_user: str = ""
     bradesco_login_password: SecretStr | None = None
     bradesco_auto_login_headless: bool = True

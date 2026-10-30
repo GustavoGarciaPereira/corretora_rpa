@@ -28,11 +28,15 @@ def _keyring():
 
 def resolve_bradesco_credentials(settings: Settings) -> LoginCredentials:
     if settings.bradesco_credential_source == "env":
-        user = settings.bradesco_login_user.strip()
+        # A primeira página aceita CPF ou CNPJ. O CNPJ/login da corretora tem
+        # prioridade; o CPF do usuário fica como fallback.
+        user = settings.bradesco_login.strip() or settings.bradesco_login_user.strip()
         secret = settings.bradesco_login_password
         password = secret.get_secret_value() if isinstance(secret, SecretStr) else ""
         if not user or not password:
-            raise CredentialsError("BRADESCO_LOGIN_USER/BRADESCO_LOGIN_PASSWORD não configurados")
+            raise CredentialsError(
+                "BRADESCO_LOGIN/BRADESCO_LOGIN_USER e BRADESCO_LOGIN_PASSWORD não configurados"
+            )
         return LoginCredentials(user=user, password=password)
 
     keyring = _keyring()
