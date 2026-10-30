@@ -1,0 +1,42 @@
+<section class="panel">
+  <div class="panel-header">
+    <strong>Pendências</strong>
+    <span class="muted">{{ pendencies|length }} registro(s)</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Seguradora</th>
+          <th>Tipo</th>
+          <th>Segurado / Apólice</th>
+          <th>Parcela</th>
+          <th>Vencimento</th>
+          <th>Valor</th>
+          <th>Status</th>
+          <th>Ação / Prazo</th>
+          <th>Produtor</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pendencies %}
+          {% include "partials/row.html" %}
+        {% else %}
+        <tr>
+          <td colspan="10">
+            <div class="empty">
+              {% if summary.failed_insurers %}
+                Não foi possível verificar {{ summary.failed_insurers }} seguradora(s).
+                Os dados exibidos podem estar incompletos.
+              {% else %}
+                Nenhuma parcela pendente encontrada.
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>

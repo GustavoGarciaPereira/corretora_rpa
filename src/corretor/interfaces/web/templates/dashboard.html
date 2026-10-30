@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Parcelas pendentes · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Parcelas pendentes</h1>
+    <p class="muted">Visão consolidada das seguradoras monitoradas.</p>
+  </div>
+  <div class="actions">
+    <form hx-post="/collect" hx-target="#dashboard-content" hx-swap="outerHTML" hx-indicator="#loading">
+      <button class="btn primary" type="submit">Coletar agora</button>
+    </form>
+    <form hx-post="/mark-overdue" hx-target="#dashboard-content" hx-swap="outerHTML" hx-indicator="#loading">
+      <button class="btn" type="submit">Marcar vencidas</button>
+    </form>
+    <span id="loading" class="htmx-indicator muted">Consultando…</span>
+  </div>
+</div>
+
+<form id="filters" class="filters"
+      hx-get="/dashboard"
+      hx-target="#dashboard-content"
+      hx-swap="outerHTML"
+      hx-trigger="change"
+      hx-indicator="#loading">
+  <div>
+    <label for="insurer">Seguradora</label>
+    <select id="insurer" name="insurer">
+      <option value="">Todas</option>
+      {% for insurer in insurers %}
+      <option value="{{ insurer.slug }}" {% if filters.insurer_slug == insurer.slug %}selected{% endif %}>{{ insurer.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="kind">Tipo</label>
+    <select id="kind" name="kind">
+      <option value="" {% if not filters.kind %}selected{% endif %}>Todos</option>
+      {% for kind_option in kinds %}
+      <option value="{{ kind_option.value }}" {% if filters.kind == kind_option.value %}selected{% endif %}>{{ kind_option.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="status">Status</label>
+    <select id="status" name="status">
+      <option value="" {% if not filters.status %}selected{% endif %}>Todos</option>
+      <option value="ABERTAS" {% if filters.status == 'ABERTAS' %}selected{% endif %}>Abertas</option>
+      <option value="VENCIDAS" {% if filters.status == 'VENCIDAS' %}selected{% endif %}>Vencidas</option>
+      {% for status in statuses %}
+      <option value="{{ status.value }}" {% if filters.status == status.value %}selected{% endif %}>{{ status.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="search-field">
+    <label for="q">Buscar</label>
+    <input id="q" name="q" value="{{ filters.q }}" placeholder="Segurado, apólice ou seguradora"
+           hx-get="/dashboard" hx-trigger="keyup changed delay:400ms"
+           hx-target="#dashboard-content" hx-swap="outerHTML" hx-include="#filters"
+           hx-indicator="#loading">
+  </div>
+  <div class="filter-actions">
+    <a class="btn" href="/export.csv?insurer={{ filters.insurer_slug }}&kind={{ filters.kind }}&status={{ filters.status }}&q={{ filters.q }}">Exportar CSV</a>
+  </div>
+</form>
+
+<div id="dashboard-content">
+  {% include "partials/dashboard_content.html" %}
+</div>
+{% endblock %}

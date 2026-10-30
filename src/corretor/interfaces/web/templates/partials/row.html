@@ -1,0 +1,52 @@
+<tr id="pendency-{{ p.id }}" class="{% if p.is_overdue %}row-overdue{% endif %}">
+  <td>
+    <strong>{{ p.insurer_name }}</strong>
+    <div class="muted small">{{ p.branch }}</div>
+  </td>
+  <td>
+    <span class="badge kind-{{ p.kind.css_class }}">{{ p.kind.label }}</span>
+  </td>
+  <td>
+    <strong>{{ p.insured_name }}</strong>
+    <div class="muted small">{{ p.policy_number }}</div>
+  </td>
+  <td>{{ p.installment_number }}</td>
+  <td>
+    {{ p.due_date|datebr }}
+    {% if p.is_overdue %}
+      <div><span class="badge danger">vencida há {{ p.days_overdue }}d</span></div>
+    {% elif p.days_until_due == 0 %}
+      <div><span class="badge warn">vence hoje</span></div>
+    {% elif p.is_due_soon %}
+      <div><span class="badge warn">em {{ p.days_until_due }}d</span></div>
+    {% endif %}
+  </td>
+  <td>{{ p.amount_cents|brl }}</td>
+  <td>
+    <select class="status-select status-{{ p.workflow_status.css_class }}"
+            name="workflow_status"
+            hx-post="/pendencies/{{ p.id }}/status"
+            hx-target="closest tr"
+            hx-swap="outerHTML">
+      {% for status in statuses %}
+      <option value="{{ status.value }}" {% if status == p.workflow_status %}selected{% endif %}>{{ status.label }}</option>
+      {% endfor %}
+    </select>
+  </td>
+  <td>
+    {% if p.action %}<div>{{ p.action|short(50) }}</div>{% endif %}
+    {% if p.new_due_date %}<div class="muted small">novo venc.: {{ p.new_due_date|datebr }}</div>{% endif %}
+    {% if p.deadline %}<div class="muted small">limite: {{ p.deadline|datebr }}</div>{% endif %}
+    {% if p.alerts %}<div><span class="badge info">{{ p.alerts|short(40) }}</span></div>{% endif %}
+    {% if not p.action and not p.deadline and not p.alerts %}<span class="muted">—</span>{% endif %}
+  </td>
+  <td>{{ p.producer or "—" }}</td>
+  <td class="row-actions">
+    <a href="/pendencies/{{ p.id }}">Detalhes</a>
+    {% if p.boleto_url %}
+      <a href="{{ p.boleto_url }}" target="_blank" rel="noopener">Boleto</a>
+    {% elif p.boleto_code %}
+      <span class="muted small">Boleto {{ p.boleto_code }}</span>
+    {% endif %}
+  </td>
+</tr>

@@ -1,0 +1,18 @@
+<div class="cards">
+  <div class="card">
+    <div class="value">{{ summary.total_open }}</div>
+    <div class="label">Pendências abertas</div>
+  </div>
+  <div class="card">
+    <div class="value">{{ summary.due_soon }}</div>
+    <div class="label">Vencendo em 7 dias</div>
+  </div>
+  <div class="card {% if summary.overdue %}danger{% endif %}">
+    <div class="value">{{ summary.overdue }}</div>
+    <div class="label">Vencidas</div>
+  </div>
+  <div class="card {% if summary.failed_insurers %}danger{% endif %}">
+    <div class="value">{{ summary.failed_insurers }}</div>
+    <div class="label">Seguradoras com falha · de {{ summary.total_insurers }}</div>
+  </div>
+</div>

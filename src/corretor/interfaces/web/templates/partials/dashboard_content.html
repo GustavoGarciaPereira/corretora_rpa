@@ -1,0 +1,32 @@
+{% if message %}
+<div class="flash {{ message_kind }}">{{ message }}</div>
+{% endif %}
+
+{% include "partials/summary.html" %}
+
+{% if health %}
+<div class="insurer-strip">
+  {% for item in health %}
+  <span class="pill {% if not item.active %}muted{% elif item.is_stale %}stale{% else %}ok{% endif %}">
+    {{ item.name }}
+    {% if item.is_stale %}
+      · desatualizado
+    {% elif item.last_success_at %}
+      · {{ item.last_success_at|datetimebr }}
+    {% else %}
+      · sem coleta
+    {% endif %}
+  </span>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% include "partials/table.html" %}
+
+<section class="panel">
+  <div class="panel-header">
+    <strong>Últimas execuções</strong>
+    <a href="/runs">ver todas</a>
+  </div>
+  {% include "partials/runs_table.html" %}
+</section>

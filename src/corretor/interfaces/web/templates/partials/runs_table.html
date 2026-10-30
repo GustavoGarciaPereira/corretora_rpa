@@ -1,0 +1,30 @@
+<div class="table-wrap">
+  <table class="data compact">
+    <thead>
+      <tr>
+        <th>Início</th>
+        <th>Seguradora</th>
+        <th>Status</th>
+        <th>Itens</th>
+        <th>Novas</th>
+        <th>Resolvidas</th>
+        <th>Erro</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for run in runs %}
+      <tr>
+        <td>{{ run.started_at|datetimebr }}</td>
+        <td>{{ run.insurer_name }}</td>
+        <td><span class="badge {{ run.status.css_class }}">{{ run.status.label }}</span></td>
+        <td>{{ run.items_found }}</td>
+        <td>{{ run.new_count }}</td>
+        <td>{{ run.resolved_count }}</td>
+        <td class="muted small">{{ run.error|short(70) if run.error else "—" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="empty">Nenhuma execução registrada.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

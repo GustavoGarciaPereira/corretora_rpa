@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% set p = detail.view %}
+{% block title %}{{ p.insured_name }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <a class="muted" href="/">← Voltar ao painel</a>
+    <h1>{{ p.insured_name }}</h1>
+    <p class="muted">
+      <span class="badge kind-{{ p.kind.css_class }}">{{ p.kind.label }}</span>
+      {{ p.insurer_name }} · {{ p.policy_number }} · {{ p.branch }}
+    </p>
+  </div>
+  <div>
+    <span class="badge {{ p.workflow_status.css_class }}">{{ p.workflow_status.label }}</span>
+  </div>
+</div>
+
+{% if saved %}
+<div class="flash success">Alterações salvas.</div>
+{% endif %}
+
+<div class="detail-grid">
+  <section class="panel">
+    <div class="panel-header"><strong>Dados da parcela</strong></div>
+    <div class="panel-body detail-list">
+      <div><span>Tipo</span><strong>{{ p.kind.label }}</strong></div>
+      <div><span>Seguradora</span><strong>{{ p.insurer_name }}</strong></div>
+      <div><span>Apólice/Proposta</span><strong>{{ p.policy_number }}</strong></div>
+      <div><span>Ramo</span><strong>{{ p.branch }}</strong></div>
+      <div><span>Parcela</span><strong>{{ p.installment_number }}</strong></div>
+      <div><span>Vencimento</span><strong>{{ p.due_date|datebr }}</strong></div>
+      <div><span>Valor</span><strong>{{ p.amount_cents|brl }}</strong></div>
+      <div><span>Produtor</span><strong>{{ p.producer or "—" }}</strong></div>
+      <div><span>Vigência/limite</span><strong>{{ p.deadline|datebr }}</strong></div>
+      <div><span>Boleto</span><strong>
+        {% if p.boleto_url %}<a href="{{ p.boleto_url }}" target="_blank" rel="noopener">abrir</a>
+        {% else %}{{ p.boleto_code or "—" }}{% endif %}
+      </strong></div>
+      <div><span>ID externo</span><strong>{{ p.external_id or "—" }}</strong></div>
+      {% if p.alerts %}
+      <div class="span-2"><span>Alertas</span><strong>{{ p.alerts }}</strong></div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><strong>Tratamento</strong></div>
+    <form class="panel-body form-grid" method="post" action="/pendencies/{{ p.id }}">
+      <div>
+        <label for="workflow_status">Status</label>
+        <select id="workflow_status" name="workflow_status">
+          {% for status in statuses %}
+          <option value="{{ status.value }}" {% if status == p.workflow_status %}selected{% endif %}>{{ status.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="assigned_to">Responsável</label>
+        <input id="assigned_to" name="assigned_to" value="{{ p.assigned_to }}" placeholder="Quem está tratando">
+      </div>
+      <div class="span-2">
+        <label for="action">Ação</label>
+        <input id="action" name="action" value="{{ p.action }}" placeholder="Ex.: enviar parcelas até dia 25">
+      </div>
+      <div>
+        <label for="new_due_date">Novo vencimento</label>
+        <input id="new_due_date" type="date" name="new_due_date" value="{{ p.new_due_date.isoformat() if p.new_due_date else '' }}">
+      </div>
+      <div>
+        <label for="deadline">Data limite</label>
+        <input id="deadline" type="date" name="deadline" value="{{ p.deadline.isoformat() if p.deadline else '' }}">
+      </div>
+      <div class="span-2">
+        <label for="notes">Observações</label>
+        <textarea id="notes" name="notes" rows="5">{{ detail.notes }}</textarea>
+      </div>
+      <div class="span-2 form-actions">
+        <button class="btn primary" type="submit">Salvar tratamento</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-header"><strong>Histórico</strong></div>
+  <div class="panel-body">
+    <ol class="timeline">
+      {% for event in detail.events %}
+      <li>
+        <div class="timeline-dot"></div>
+        <div>
+          <div class="muted small">{{ event.created_at|datetimebr }}</div>
+          <div>
+            {% if event.from_status %}{{ event.from_status.label }} → {% endif %}
+            <strong>{{ event.to_status.label }}</strong>
+          </div>
+          {% if event.note %}<div class="muted">{{ event.note }}</div>{% endif %}
+        </div>
+      </li>
+      {% else %}
+      <li class="muted">Nenhum evento registrado.</li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+{% endblock %}

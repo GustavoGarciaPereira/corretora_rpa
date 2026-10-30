@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Execuções · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Execuções de coleta</h1>
+    <p class="muted">Histórico das últimas 50 execuções.</p>
+  </div>
+  <a class="btn" href="/">Voltar ao painel</a>
+</div>
+
+<section class="panel">
+  {% include "partials/runs_table.html" %}
+</section>
+{% endblock %}

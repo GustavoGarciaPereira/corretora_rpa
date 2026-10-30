@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Plugins · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Plugins</h1>
+    <p class="muted">Adapters de seguradoras descobertos em runtime.</p>
+  </div>
+  <a class="btn" href="/">Voltar ao painel</a>
+</div>
+
+{% if plugin_errors %}
+<div class="flash error">
+  <strong>{{ plugin_errors|length }} plugin(s) com erro de carregamento</strong>
+  <ul>
+    {% for error in plugin_errors %}
+    <li><code>{{ error.path }}</code>: {{ error.error }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="plugin-grid">
+  {% for manifest in manifests %}
+  <article class="card plugin-card">
+    <div class="plugin-head">
+      <strong>{{ manifest.name }}</strong>
+      {% if manifest.status == 'ready' %}
+      <span class="badge success">pronto</span>
+      {% elif manifest.status == 'discovery' %}
+      <span class="badge warn">descoberta</span>
+      {% else %}
+      <span class="badge muted">desativado</span>
+      {% endif %}
+    </div>
+    <div class="muted small">{{ manifest.slug }} · v{{ manifest.version }} · {{ manifest.mode }}</div>
+    {% if manifest.description %}<p>{{ manifest.description }}</p>{% endif %}
+    <div class="plugin-meta">
+      <span>Capabilities: {{ manifest.capabilities|join(', ') }}</span>
+      <span>Sessão: {{ 'necessária' if manifest.requires_session else 'não necessária' }}</span>
+    </div>
+
+    {% if manifest.slug == 'bradesco' %}
+    <div class="session-box">
+      <div>
+        Sessão do Bradesco:
+        <strong>{{ 'configurada' if bradesco_state_exists else 'não encontrada' }}</strong>
+      </div>
+      <code>{{ bradesco_state_path }}</code>
+    </div>
+    {% endif %}
+
+    {% set health = health_by_slug.get(manifest.slug) %}
+    {% if health %}
+    <div class="plugin-health">
+      <div>Último sucesso: {{ health.last_success_at|datetimebr }}</div>
+      <div>Última execução: {{ health.last_status.label if health.last_status else '—' }}</div>
+      {% if health.is_stale %}<div class="badge danger">dados desatualizados</div>{% endif %}
+    </div>
+    {% endif %}
+  </article>
+  {% else %}
+  <div class="empty">Nenhum plugin encontrado.</div>
+  {% endfor %}
+</div>
+{% endblock %}
