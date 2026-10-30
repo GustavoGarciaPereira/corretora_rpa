@@ -55,10 +55,9 @@ class BradescoAdapter:
         if self.collect_proposals and not self.proposals_endpoint:
             raise AdapterNotConfigured("BRADESCO_PROPOSALS_ENDPOINT não configurado")
         if not self.state_path.exists():
-            raise AdapterNotConfigured(
+            raise AdapterSessionExpired(
                 "sessão do Bradesco não encontrada em "
-                f"{self.state_path}. Gere o state.json com login manual "
-                "(tools/discover_portal.py) e configure BRADESCO_STATE_PATH."
+                f"{self.state_path}. Faça o login para gerar o state.json."
             )
 
         try:
