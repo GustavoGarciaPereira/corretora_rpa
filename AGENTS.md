@@ -453,9 +453,9 @@ renovação sem autenticação.
 
 Login automático: `BRADESCO_AUTO_LOGIN_ENABLED`,
 `BRADESCO_CREDENTIAL_SOURCE` (`keyring|env`), `BRADESCO_KEYRING_SERVICE`,
-`BRADESCO_KEYRING_USERNAME`, `BRADESCO_LOGIN_USER`,
-`BRADESCO_LOGIN_PASSWORD`, `BRADESCO_AUTO_LOGIN_HEADLESS`,
-`BRADESCO_AUTO_LOGIN_TIMEOUT_S`. Credenciais do portal ficam no keyring/Vault
+`BRADESCO_KEYRING_USERNAME`, `BRADESCO_LOGIN` (CNPJ/login do campo
+CPF/CNPJ), `BRADESCO_LOGIN_USER` (CPF fallback), `BRADESCO_LOGIN_PASSWORD`,
+`BRADESCO_AUTO_LOGIN_HEADLESS`, `BRADESCO_AUTO_LOGIN_TIMEOUT_S`. Credenciais do portal ficam no keyring/Vault
 (nunca em código, `.env` commitado ou logs). O worker
 `tools/auto_login_bradesco.py` tenta preencher o login; se houver
 captcha/MFA, retorna `captcha` e a UI oferece renovação manual. A coleta

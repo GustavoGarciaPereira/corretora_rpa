@@ -177,6 +177,10 @@ O comando pede o CPF/CNPJ e a senha (sem eco) e grava no **keyring** do sistema,
 nunca no `.env` ou no banco. O backend tenta preencher o formulário em
 background e, se conseguir, salva o `state.json` automaticamente.
 
+Na fonte `env`, o campo CPF/CNPJ da primeira página usa **`BRADESCO_LOGIN`**
+(CNPJ/login da corretora) quando preenchido; `BRADESCO_LOGIN_USER` (CPF) fica
+como fallback. `BRADESCO_LOGIN_PASSWORD` é a senha.
+
 Além do botão, a **coleta automática e o “Coletar agora”** tentam renovar a
 sessão sozinhos quando ela expira: fazem o login em background e repetem a
 coleta se a renovação funcionar. Não é necessário clicar em “Renovar” no fluxo
@@ -184,8 +188,9 @@ normal.
 
 Se o Bradesco exigir **reCAPTCHA/MFA**, o sistema não contorna: marca o status
 `captcha` e oferece **Renovar manualmente**. Para Vault, use
-`BRADESCO_CREDENTIAL_SOURCE=env` e injete `BRADESCO_LOGIN_USER` /
-`BRADESCO_LOGIN_PASSWORD` no processo, sem commitar.
+`BRADESCO_CREDENTIAL_SOURCE=env` e injete `BRADESCO_LOGIN` (CNPJ/login),
+`BRADESCO_LOGIN_USER` (CPF fallback) e `BRADESCO_LOGIN_PASSWORD` no processo,
+sem commitar.
 
 > Validar os termos de uso e a política de segurança da corretora antes de
 > armazenar credenciais do portal. O método mais seguro continua sendo a API
@@ -254,8 +259,9 @@ uv run ruff check . && uv run ruff format --check .
 `BRADESCO_API_SECRET_SOURCE`, `BRADESCO_API_KEYRING_SERVICE`,
 `BRADESCO_API_KEYRING_USERNAME`, `BRADESCO_API_CNPJ_PROVEDOR`,
 `BRADESCO_API_CPF_CNPJ_CORRETOR`, `BRADESCO_API_TOKEN_EXTRA`,
-`BRADESCO_API_CERT_PATH`, `BRADESCO_API_KEY_PATH`, `BRADESCO_API_CA_BUNDLE`, `BRADESCO_LOGIN_URL`,
-`SESSION_RENEWAL_ENABLED`, `SESSION_RENEWAL_TIMEOUT_S`.
+`BRADESCO_API_CERT_PATH`, `BRADESCO_API_KEY_PATH`, `BRADESCO_API_CA_BUNDLE`,
+`BRADESCO_LOGIN`, `BRADESCO_LOGIN_URL`, `SESSION_RENEWAL_ENABLED`,
+`SESSION_RENEWAL_TIMEOUT_S`.
 
 ## Segurança e LGPD
 

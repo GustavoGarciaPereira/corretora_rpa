@@ -266,7 +266,8 @@ Se `BRADESCO_AUTO_LOGIN_ENABLED=true` e houver credenciais no cofre, a página
 salva o `state.json` se a área logada aparecer.
 
 - Credenciais: keyring (`corretor credentials set bradesco`) ou
-  `BRADESCO_CREDENTIAL_SOURCE=env` com `BRADESCO_LOGIN_USER` /
+  `BRADESCO_CREDENTIAL_SOURCE=env` com `BRADESCO_LOGIN` (CNPJ/login do campo
+  CPF/CNPJ), `BRADESCO_LOGIN_USER` (CPF fallback) e
   `BRADESCO_LOGIN_PASSWORD` injetados por Vault.
 - Se o portal exigir reCAPTCHA/MFA, o worker retorna `captcha` e **não
   contorna**; a UI oferece a renovação manual.
