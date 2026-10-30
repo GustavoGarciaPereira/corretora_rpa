@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -141,6 +142,23 @@ class SessionRenewalManager:
             and self.settings.bradesco_auto_login_enabled
             and credentials_available(self.settings)
         )
+
+    def wait(self, timeout: float | None = None) -> RenewalStatus:
+        deadline = time.monotonic() + (
+            timeout if timeout is not None else self.settings.bradesco_auto_login_timeout_s + 15
+        )
+        while time.monotonic() < deadline:
+            status = self.status()
+            if status.status != "running":
+                return status
+            time.sleep(1)
+        return RenewalStatus("error", "tempo esgotado aguardando a renovação automática")
+
+    def auto_renew(self) -> RenewalStatus:
+        status = self.start(auto=True)
+        if status.status == "running":
+            status = self.wait()
+        return status
 
     def start(self, auto: bool = False) -> RenewalStatus:
         current = self.status()

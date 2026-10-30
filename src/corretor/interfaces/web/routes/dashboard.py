@@ -51,7 +51,7 @@ def collect_now(
     container: Container = Depends(get_container),
     templates: Jinja2Templates = Depends(get_templates),
 ):
-    outcomes = container.collection_service(store).collect_all()
+    outcomes = container.collect_all()
     successes = sum(1 for outcome in outcomes if outcome.ok)
     failures = len(outcomes) - successes
     attention = [outcome for outcome in outcomes if outcome.status is RunStatus.NEEDS_ATTENTION]

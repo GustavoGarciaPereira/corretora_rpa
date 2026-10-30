@@ -13,6 +13,7 @@ from apscheduler.triggers.cron import CronTrigger
 import corretor.plugins
 from corretor.application.services import CollectionService, PendencyService
 from corretor.domain.entities import PluginContext
+from corretor.domain.enums import RunStatus
 
 from .clock import SystemClock
 from .config import Settings
@@ -84,11 +85,30 @@ class Container:
         with self.session() as store:
             service = self.collection_service(store)
             service.ensure_insurer(slug)
-            return service.collect(slug)
+            outcome = service.collect(slug)
+        if outcome.status is RunStatus.NEEDS_ATTENTION and self.renewal.auto_available():
+            renewal = self.renewal.auto_renew()
+            if renewal.status == "success":
+                with self.session() as store:
+                    outcome = self.collection_service(store).collect(slug)
+        return outcome
 
     def collect_all(self):
         with self.session() as store:
-            return self.collection_service(store).collect_all()
+            outcomes = self.collection_service(store).collect_all()
+        if (
+            any(outcome.status is RunStatus.NEEDS_ATTENTION for outcome in outcomes)
+            and self.renewal.auto_available()
+        ):
+            logger.info("sessão expirada; tentando renovação automática")
+            renewal = self.renewal.auto_renew()
+            if renewal.status == "success":
+                logger.info("sessão renovada automaticamente; repetindo coleta")
+                with self.session() as store:
+                    outcomes = self.collection_service(store).collect_all()
+            else:
+                logger.warning("renovação automática não concluída: %s", renewal.message)
+        return outcomes
 
     def mark_overdue(self) -> int:
         with self.session() as store:
