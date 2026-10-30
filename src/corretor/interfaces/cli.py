@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import logging
 from zoneinfo import ZoneInfo
 
@@ -9,6 +10,12 @@ from apscheduler.triggers.cron import CronTrigger
 
 from corretor.infrastructure.config import Settings
 from corretor.infrastructure.container import Container
+from corretor.infrastructure.credentials import (
+    CredentialsError,
+    clear_bradesco_credentials,
+    resolve_bradesco_credentials,
+    store_bradesco_credentials,
+)
 
 
 def _configure_logging(level: str) -> None:
@@ -44,7 +51,45 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("mark-overdue", help="marca pendências abertas vencidas")
     sub.add_parser("plugins", help="lista plugins carregados e erros")
     sub.add_parser("scheduler", help="roda o agendador diário em primeiro plano")
+
+    credentials = sub.add_parser("credentials", help="gerencia credenciais no cofre/keyring")
+    credentials.add_argument("action", choices=["set", "status", "clear"])
+    credentials.add_argument("portal", choices=["bradesco"])
     return parser
+
+
+def _credentials(settings: Settings, action: str, portal: str) -> int:
+    if portal != "bradesco":
+        print("portal não suportado")
+        return 2
+    try:
+        if action == "set":
+            if settings.bradesco_credential_source != "keyring":
+                print(
+                    "aviso: BRADESCO_CREDENTIAL_SOURCE não é 'keyring'; "
+                    "o login automático usará as variáveis de ambiente."
+                )
+            user = input("CPF/CNPJ do corretor: ").strip()
+            password = getpass.getpass("Senha do portal: ")
+            confirmation = getpass.getpass("Confirme a senha: ")
+            if password != confirmation:
+                print("as senhas não conferem")
+                return 1
+            store_bradesco_credentials(settings, user, password)
+            print("credenciais salvas no keyring")
+            return 0
+        if action == "status":
+            resolve_bradesco_credentials(settings)
+            print("credenciais configuradas")
+            return 0
+        if action == "clear":
+            clear_bradesco_credentials(settings)
+            print("credenciais removidas")
+            return 0
+    except CredentialsError as exc:
+        print(f"credenciais: {exc}")
+        return 1
+    return 2
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -63,6 +108,9 @@ def main(argv: list[str] | None = None) -> int:
         container.seed_demo()
         print("seed concluído")
         return 0
+
+    if args.command == "credentials":
+        return _credentials(settings, args.action, args.portal)
 
     if args.command == "plugins":
         for manifest in container.plugins.manifests():

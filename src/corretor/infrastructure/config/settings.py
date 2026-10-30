@@ -37,6 +37,15 @@ class Settings(BaseSettings):
     )
     session_renewal_enabled: bool = True
     session_renewal_timeout_s: int = 600
+
+    bradesco_auto_login_enabled: bool = True
+    bradesco_credential_source: str = "keyring"  # keyring | env
+    bradesco_keyring_service: str = "corretor-rpa"
+    bradesco_keyring_username: str = "bradesco-login"
+    bradesco_login_user: str = ""
+    bradesco_login_password: SecretStr | None = None
+    bradesco_auto_login_headless: bool = True
+    bradesco_auto_login_timeout_s: int = 120
     bradesco_endpoint: str = (
         "https://wwwn.bradescoseguros.com.br/pnegocios/wps/"
         "PA_BSPN-DBoardAuto-PU/api/parcelas/v1/list"
