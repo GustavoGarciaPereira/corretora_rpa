@@ -270,6 +270,8 @@ salva o `state.json` se a área logada aparecer.
   `BRADESCO_LOGIN_PASSWORD` injetados por Vault.
 - Se o portal exigir reCAPTCHA/MFA, o worker retorna `captcha` e **não
   contorna**; a UI oferece a renovação manual.
+- A coleta automática e o “Coletar agora” também tentam renovar sozinhos
+  quando a sessão expira (`NEEDS_ATTENTION`) e repetem a coleta após sucesso.
 - O worker não usa a senha em argumentos de linha de comando e não a grava em
   logs. Validar os termos de uso antes de habilitar.
 

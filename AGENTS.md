@@ -458,8 +458,11 @@ Login automático: `BRADESCO_AUTO_LOGIN_ENABLED`,
 `BRADESCO_AUTO_LOGIN_TIMEOUT_S`. Credenciais do portal ficam no keyring/Vault
 (nunca em código, `.env` commitado ou logs). O worker
 `tools/auto_login_bradesco.py` tenta preencher o login; se houver
-captcha/MFA, retorna `captcha` e a UI oferece renovação manual. Não contornar
-captcha/MFA nem expor o endpoint publicamente sem autenticação.
+captcha/MFA, retorna `captcha` e a UI oferece renovação manual. A coleta
+automática e o `POST /collect` tentam `auto_renew()` quando o resultado é
+`NEEDS_ATTENTION` e repetem a coleta em caso de sucesso — o fluxo normal não
+exige clique em “Renovar”. Não contornar captcha/MFA nem expor o endpoint
+publicamente sem autenticação.
 
 ## 10. Convenções de código
 

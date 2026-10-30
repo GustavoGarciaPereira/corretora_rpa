@@ -4,8 +4,8 @@
 > API oficial** de Propostas Pendentes (OAuth2/JWT) pronto, mas onboarding em
 > standby. A operação usa fallback HTML com sessão assistida; a página
 > `/sessions` permite renovação manual e tentativa de login automático com
-> credenciais no keyring/Vault, salvando o `state.json` automaticamente. Se
-> houver captcha/MFA, cai no manual. “Parcelas em Atraso” está pronto, mas
+> credenciais no keyring/Vault; a coleta também tenta renovar sozinha e repete
+> após sucesso. Se houver captcha/MFA, cai no manual. “Parcelas em Atraso” está pronto, mas
 > desativado por flag. Próximo marco: adapter Allianz e retomada do onboarding
 > da API.
 

@@ -177,6 +177,11 @@ O comando pede o CPF/CNPJ e a senha (sem eco) e grava no **keyring** do sistema,
 nunca no `.env` ou no banco. O backend tenta preencher o formulário em
 background e, se conseguir, salva o `state.json` automaticamente.
 
+Além do botão, a **coleta automática e o “Coletar agora”** tentam renovar a
+sessão sozinhos quando ela expira: fazem o login em background e repetem a
+coleta se a renovação funcionar. Não é necessário clicar em “Renovar” no fluxo
+normal.
+
 Se o Bradesco exigir **reCAPTCHA/MFA**, o sistema não contorna: marca o status
 `captcha` e oferece **Renovar manualmente**. Para Vault, use
 `BRADESCO_CREDENTIAL_SOURCE=env` e injete `BRADESCO_LOGIN_USER` /
