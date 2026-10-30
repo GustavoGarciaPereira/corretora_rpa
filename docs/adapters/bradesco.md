@@ -1,8 +1,9 @@
 # Bradesco Seguros — descoberta do portal
 
-> Status: **descoberta avançada**. O caminho principal de “Parcelas em Atraso”
-> já foi identificado como API JSON. Nenhum adapter de produção deve ser
-> implementado sem validar termos de uso, sessão e dados reais.
+> Status: **descoberta avançada**. O caminho preferencial agora é a **API
+> oficial** (`docs/adapters/bradesco-api.md`): Propostas Pendentes via
+> OAuth2/JWT. Este documento descreve o fallback HTML/sessão, usado enquanto as
+> credenciais oficiais não forem liberadas.
 
 ## Portal
 
@@ -189,7 +190,8 @@ snapshot parcial silencioso).
 - [x] **API JSON** para Parcelas em Atraso.
 - [x] **HTML do endpoint** para Propostas Pendentes.
 - [x] DOM/Playwright como fallback e para login manual.
-- [ ] API/integração oficial — verificar com a corretora/Bradesco.
+- [x] API/integração oficial — adapter implementado em `bradesco-api.md`;
+  acesso/credenciais pendentes de onboarding.
 - [ ] Exportação XLS — avaliar como contingência.
 
 Justificativa: `/api/parcelas/v1/list` entrega JSON; propostas só têm o
@@ -243,13 +245,14 @@ do controle operacional.
 
 ## Próximo passo
 
-1. Manter **Propostas Pendentes** como escopo atual; parcelas seguem atrás de
+1. Solicitar à Bradesco as credenciais da **API oficial de Propostas
+   Pendentes** (homologação e produção) e confirmar `cnpjProvedor` /
+   `cpfCnpjCorretor`.
+2. Configurar o cofre (`BRADESCO_API_SECRET_SOURCE=keyring` ou Vault) e validar
+   o adapter da API em homologação.
+3. Manter o HTML como fallback até a API estar liberada.
+4. Manter **Propostas Pendentes** como escopo atual; parcelas seguem atrás de
    `BRADESCO_COLLECT_PARCELAS=true`.
-2. Promover o manifest de `discovery` para `ready` após validação em produção
-   assistida.
-3. Implementar o fallback DOM/Playwright para renovação assistida da sessão.
-4. Adicionar testes de mutação do payload (campos ausentes, tipos trocados,
-   `situacaoSistemas=false`).
 5. Repetir a descoberta para Allianz/Porto usando o mesmo contrato.
 
 **Nunca** registrar credenciais neste documento ou nos testes.

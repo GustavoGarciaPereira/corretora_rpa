@@ -6,9 +6,9 @@ portais.
 
 > **Status:** fase 0 concluída. Painel FastAPI + Jinja/HTMX, loader de plugins,
 > adapter demo, CLI e testes verdes. O plugin **Bradesco** coleta **Propostas
-> Pendentes** (HTML) por padrão, usando sessão manual salva. **Parcelas em
-> Atraso** (JSON) está implementado, mas desativado por flag; falta validação em
-> produção e o adapter Allianz.
+> Pendentes**; há adapter para a **API oficial** (OAuth2/JWT), aguardando
+> credenciais/homologação, e fallback HTML com sessão manual. **Parcelas em
+> Atraso** está implementado, mas desativado por flag; falta o adapter Allianz.
 
 ## Documentos
 
@@ -142,17 +142,20 @@ uv run --python 3.12 --with playwright python tools/discover_portal.py --slug br
 
 Detalhes em [`tools/README.md`](tools/README.md).
 
-## Bradesco (plugin JSON)
+## Bradesco
 
-O plugin `bradesco` usa a mesma sessão autenticada para dois endpoints:
+Há dois caminhos:
 
-- **Propostas Pendentes (padrão):** `/pnegocios/wps/PA_BSPN-DBoardAuto-PU/api/propostas/pendentes/v1/view`
-  (fragmento HTML);
-- **Parcelas em Atraso (opcional):** `/pnegocios/wps/PA_BSPN-DBoardAuto-PU/api/parcelas/v1/list`
-  (JSON), habilitado com `BRADESCO_COLLECT_PARCELAS=true`.
+1. **API oficial (preferencial):** `POST /pendentes` com OAuth2/JWT, sem
+   navegador e sem captcha. Requer onboarding/credenciais da Bradesco. Detalhes
+   em [`docs/adapters/bradesco-api.md`](docs/adapters/bradesco-api.md).
+2. **Fallback HTML:** Propostas Pendentes via sessão salva do Playwright, mais
+   Parcelas em Atraso opcional (`BRADESCO_COLLECT_PARCELAS=true`). É o que está
+   ativo enquanto a API não é liberada.
 
-Ele reutiliza uma sessão autenticada salva pelo Playwright — **nenhuma senha
-fica no projeto**.
+O modo é escolhido por `BRADESCO_MODE=auto|api|html`. Em `auto`, usa a API
+quando as credenciais estão configuradas; caso contrário, usa o HTML. Nenhuma
+senha do portal fica no projeto; o segredo da API deve vir do cofre/keyring.
 
 ```bash
 # 1. gere a sessão com login manual
@@ -210,8 +213,14 @@ uv run ruff check . && uv run ruff format --check .
 `DATABASE_URL`, `EVIDENCE_DIR`, `ENABLE_SCHEDULER`, `SCHEDULER_HOUR`,
 `SCHEDULER_MINUTE`, `TIMEZONE`, `STALE_AFTER_HOURS`, `PLUGIN_PATHS`,
 `SEED_DEMO`, `LOG_LEVEL`, `BRADESCO_STATE_PATH`, `BRADESCO_ENDPOINT`,
-`BRADESCO_PROPOSALS_ENDPOINT`, `BRADESCO_COLLECT_PROPOSALS`,
-`BRADESCO_HEADLESS`, `BRADESCO_TIMEOUT_MS`.
+`BRADESCO_PROPOSALS_ENDPOINT`, `BRADESCO_COLLECT_PARCELAS`,
+`BRADESCO_COLLECT_PROPOSALS`, `BRADESCO_HEADLESS`, `BRADESCO_TIMEOUT_MS`,
+`BRADESCO_MODE`, `BRADESCO_API_BASE_URL`, `BRADESCO_API_TOKEN_URL`,
+`BRADESCO_API_CLIENT_ID`, `BRADESCO_API_CLIENT_SECRET`,
+`BRADESCO_API_SECRET_SOURCE`, `BRADESCO_API_KEYRING_SERVICE`,
+`BRADESCO_API_KEYRING_USERNAME`, `BRADESCO_API_CNPJ_PROVEDOR`,
+`BRADESCO_API_CPF_CNPJ_CORRETOR`, `BRADESCO_API_TOKEN_EXTRA`,
+`BRADESCO_API_CERT_PATH`, `BRADESCO_API_KEY_PATH`, `BRADESCO_API_CA_BUNDLE`.
 
 ## Segurança e LGPD
 
@@ -230,7 +239,7 @@ uv run ruff check . && uv run ruff format --check .
 | Fase | Entrega |
 |---|---|
 | 0 | **Concluída:** Clean Architecture + plugins + adapter demo + painel + CLI + testes |
-| 1 | **Bradesco Propostas concluído** (HTML, sessão manual); Parcelas em Atraso prontas atrás de flag; falta Allianz e receita declarativa |
+| 1 | **Bradesco Propostas:** API oficial implementada (aguardando credenciais) + fallback HTML; Parcelas em Atraso prontas atrás de flag; falta Allianz e receita declarativa |
 | 2 | Scheduler, watchdog, digest interno e workflow completo |
 | 3 | Porto, testes de mutação, fallback LLM, Postgres/Docker |
 | 4 | Integração com ERP/CRM via API/webhook idempotente |

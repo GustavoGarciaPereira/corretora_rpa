@@ -24,7 +24,7 @@
 
 ### O que entra (In Scope)
 
-* **Escopo atual:** coleta automática diária, somente leitura, das **propostas pendentes** nas seguradoras ativas.
+* **Escopo atual:** coleta automática diária, somente leitura, das **propostas pendentes** nas seguradoras ativas, preferencialmente pela **API oficial** quando disponível.
 * **Evolução prevista:** parcelas em atraso de apólices emitidas, já implementadas no plugin Bradesco atrás da flag `BRADESCO_COLLECT_PARCELAS`.
 * Separação explícita entre os tipos **Parcela** (apólice emitida) e **Proposta** (1ª parcela/CCB aguardando emissão), com filtro no painel.
 * Painel consolidado com seguradora, tipo, segurado, apólice/proposta, ramo, número da parcela, vencimento, valor, produtor e status.

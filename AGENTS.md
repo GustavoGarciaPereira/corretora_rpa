@@ -14,11 +14,11 @@ novidades, listar no painel e registrar evidências. Alertas externos e
 integração com ERP/CRM ficam para fases posteriores.
 
 **Estado em 2026-10-30:** fase 0 concluída. Painel FastAPI + Jinja/HTMX,
-loader de plugins, adapter demo, CLI e testes verdes. O plugin Bradesco coleta
-**Propostas Pendentes** (HTML) por padrão, usando sessão manual salva. A coleta
-de **Parcelas em Atraso** (JSON) está implementada, mas desativada por
-`BRADESCO_COLLECT_PARCELAS=false`; falta validar em produção e implementar
-Allianz/receita declarativa.
+loader de plugins, adapter demo, CLI e testes verdes. O plugin Bradesco tem
+**adapter da API oficial** de Propostas Pendentes (OAuth2/JWT), aguardando
+credenciais/homologação, e **fallback HTML** com sessão manual. A coleta de
+**Parcelas em Atraso** está implementada, mas desativada por
+`BRADESCO_COLLECT_PARCELAS=false`; falta Allianz/receita declarativa.
 
 **Fora de escopo (não implementar sem pedido explícito):**
 
@@ -141,8 +141,11 @@ src/corretor/
     bradesco/
       manifest.yaml
       plugin.py
-      adapter.py
+      adapter.py          # fallback HTML/sessão
       mapping.py
+      api_adapter.py      # API oficial OAuth2/JWT
+      api_mapping.py
+      proposals.py
     _template/            # modelo para nova seguradora; ignorado pelo loader
   main.py                 # app = create_app()
 tests/
@@ -153,6 +156,7 @@ docs/
   PRD.md
   PLANO.md
   adapters/bradesco.md
+  adapters/bradesco-api.md
 ```
 
 ### Regra de dependência (não violar)
@@ -421,6 +425,16 @@ Configuração por ambiente (`.env`): `DATABASE_URL`, `EVIDENCE_DIR`,
 `BRADESCO_COLLECT_PARCELAS`, `BRADESCO_COLLECT_PROPOSALS`,
 `BRADESCO_HEADLESS`, `BRADESCO_TIMEOUT_MS`.
 
+API Bradesco: `BRADESCO_MODE` (`auto|api|html`), `BRADESCO_API_BASE_URL`,
+`BRADESCO_API_TOKEN_URL`, `BRADESCO_API_CLIENT_ID`,
+`BRADESCO_API_CLIENT_SECRET`, `BRADESCO_API_SECRET_SOURCE` (`env|keyring`),
+`BRADESCO_API_KEYRING_SERVICE`, `BRADESCO_API_KEYRING_USERNAME`,
+`BRADESCO_API_CNPJ_PROVEDOR`, `BRADESCO_API_CPF_CNPJ_CORRETOR`,
+`BRADESCO_API_SCOPE`, `BRADESCO_API_FEATURE_TOGGLE`,
+`BRADESCO_API_TOKEN_EXTRA`, `BRADESCO_API_CERT_PATH`,
+`BRADESCO_API_KEY_PATH`, `BRADESCO_API_CA_BUNDLE`, `BRADESCO_API_VERIFY_TLS`,
+`BRADESCO_API_TIMEOUT_MS`. Segredos vêm de cofre/keyring, nunca do repositório.
+
 ## 10. Convenções de código
 
 - Type hints em todo código público; `from __future__ import annotations`.
@@ -468,7 +482,7 @@ Uma entrega só termina quando:
 | Fase | Entrega |
 |---|---|
 | 0 | **Concluída:** Clean Architecture + loader de plugins + adapter demo + painel Jinja/HTMX + CLI + testes |
-| 1 | **Bradesco Propostas concluído** (HTML, sessão manual); Parcelas em Atraso prontas atrás de flag; falta Allianz e receita declarativa com fallbacks |
+| 1 | **Bradesco Propostas:** API oficial implementada (aguardando credenciais) + fallback HTML; Parcelas em Atraso prontas atrás de flag; falta Allianz e receita declarativa com fallbacks |
 | 2 | Scheduler diário, watchdog, digest interno, workflow completo e `/healthz` |
 | 3 | Porto, testes de mutação, fallback LLM, Postgres/Docker; Bradesco em produção assistida |
 | 4 | Integração com o sistema da corretora (API/webhook com idempotência) |

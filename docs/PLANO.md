@@ -1,9 +1,10 @@
 # Plano de Execução — Corretor RPA
 
-> **Status em 2026-10-30:** fase 0 concluída; plugin Bradesco coletando
-> **Propostas Pendentes** (HTML, escopo atual) com sessão manual. “Parcelas em
-> Atraso” (JSON) está pronto, mas desativado por flag. Próximo marco: validação
-> assistida em produção e adapter Allianz.
+> **Status em 2026-10-30:** fase 0 concluída; plugin Bradesco com **adapter da
+> API oficial** de Propostas Pendentes (OAuth2/JWT), aguardando
+> credenciais/homologação, e fallback HTML com sessão manual. “Parcelas em
+> Atraso” está pronto, mas desativado por flag. Próximo marco: onboarding da API
+> e adapter Allianz.
 
 ## Princípios
 
