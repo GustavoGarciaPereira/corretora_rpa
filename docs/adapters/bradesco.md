@@ -1,123 +1,241 @@
 # Bradesco Seguros — descoberta do portal
 
-> Status: **em descoberta**. Nenhum adapter de produção deve ser implementado
-> antes de concluir este documento e validar os termos de uso.
+> Status: **descoberta avançada**. O caminho principal de “Parcelas em Atraso”
+> já foi identificado como API JSON. Nenhum adapter de produção deve ser
+> implementado sem validar termos de uso, sessão e dados reais.
 
 ## Portal
 
 - URL inicial: `https://wwwn.bradescoseguros.com.br/pnegocios2/wps/portal/portaldenegociosnovo/`
+- Área logada (Auto): `https://wwwn.bradescoseguros.com.br/pnegocios/wps/myportal/portalnegocios/arealogada/auto/!ut/p/...#/`
 - Data da descoberta: 2026-10-30
-- Responsável: descoberta assistida (headless, sem login)
-- Navegador/canal usado: Playwright 1.64.0 + Google Chrome (headless)
-- Pasta da evidência: `data/discovery/bradesco/20261030T034210Z/` (não versionar)
-
-### Primeira captura (sem login)
-
-- Título: `Login | Bradesco Seguros - Portal de Negócios`
-- URL final: a mesma URL inicial (a página de login é renderizada no próprio portal)
-- Frames: 5 (incluindo `recaptcha/api2/anchor` e `recaptcha/api2/bframe`)
-- Rede: 19 entradas XHR/fetch/document, majoritariamente assets, analytics,
-  consentimento e reCAPTCHA.
+- Navegador: Playwright 1.64.0 + Google Chrome
+- Evidências:
+  - `data/discovery/bradesco/20261030T034210Z/` — login (sem autenticação)
+  - `data/discovery/bradesco/20261030T035459Z/` — Propostas Pendentes
+  - `data/discovery/bradesco/20261030T040647Z/` — Parcelas em Atraso + payload JSON
 
 ## Autenticação
 
-- [x] Login + senha (formulário exibido)
-- [ ] MFA (SMS/app/token) — não verificável sem login
-- [ ] Certificado digital — não verificável sem login
-- [x] Captcha — **Google reCAPTCHA v2 invisível** detectado
-- [ ] Outro:
+- Login + senha.
+- **Google reCAPTCHA v2 invisível** na tela de login.
+- MFA/certificado: não verificável sem login; validar com a corretora.
+- Sessão: reutilizável via `storage_state.json` do Playwright.
+- Quando a sessão expirar: pausar e pedir **login manual**. Não automatizar
+  captcha.
 
-A página de login oferece os perfis **Corretor**, **Assessoria** e **Produtor**,
-com botões `Continuar` e `Entrar`, além de `Esqueci a senha` e
-`Faça aqui seu primeiro acesso`.
+## Overlays que bloqueiam cliques
 
-Observações de sessão (tempo de expiração, abas, popups): a descobrir após o
-login manual.
+Antes de interagir com os cards, fechar os dois overlays:
 
-## Caminho até as parcelas pendentes
+1. **Modal promocional** (ex.: “Live de lançamento da Seguros Friday”):
+   - container: `div.modal-aviso` contendo o texto `Seguros Friday`;
+   - fechar: `button.close[data-dismiss="modal"][data-analytics-label*="Seguros Friday"]`;
+   - se o clique for interceptado, usar clique forçado/JS e remover o
+     `.modal-backdrop` residual do Bootstrap.
+2. **Banner de cookies do AdOpt**:
+   - botão: `#adopt-reject-all-button` (`Rejeitar cookies não necessários`).
 
-1. Acessar a URL inicial do Portal de Negócios.
-2. Na tela de login, selecionar o perfil **Corretor** (ou o perfil aplicável).
-3. Informar login e senha **manualmente** (nunca por script/chat).
-4. Resolver o reCAPTCHA apresentado.
-5. Clicar em `Entrar`/`Continuar`.
-6. Navegar até a consulta de parcelas pendentes.
-7. Registrar a URL final e as chamadas de rede da consulta.
+O modal promocional pode reaparecer em novas sessões. O checkbox
+`#checkbox-view` (“Não quero mais visualizar esta mensagem”) grava a dispensa
+em cookie; usar apenas se a corretora quiser suprimir esse aviso de vez.
 
-URL final da consulta: **pendente de login manual.**
+## Caminho — Parcelas em Atraso (alvo principal)
 
-Frames/iframes envolvidos: **pendente de login manual.**
+1. Login manual.
+2. Home logada → **AUTO**.
+3. No dashboard, localizar o card **Parcelas em Atraso**.
+4. Clicar em **Ver detalhes**.
+5. A tabela é carregada por uma chamada JSON.
 
-## Endpoints observados
+### Card e tabela
 
-| Método | URL (sem query sensível) | Status | Uso |
-|---|---|---|---|
-| GET | `/pnegocios2/wps/portal/portaldenegociosnovo/` | 200 | Documento do portal/login |
-| GET | `static.bradescoseguros.com.br/@bsds-lib-component/...` | 200 | Assets de UI |
-| GET | `google.com/recaptcha/api2/anchor` | 200 | reCAPTCHA |
-| GET | `google.com/recaptcha/api2/bframe` | 200 | reCAPTCHA |
-| POST | `disclaimer-api.goadopt.io/api/tag/get-consent` | 200 | Consentimento/cookies |
-| POST | `analytics-fe.digital-cloud-west.medallia.com/api/web/events` | 200 | Analytics |
+- Card: `bspn-card` contendo o texto `Parcelas em Atraso`.
+- Botão: `.bspn-card-ver-detalhes-btn` com texto `Ver detalhes`.
+- Após abrir, o botão muda para `Ocultar detalhes`.
+- Tabela visível: colunas Segurado, Suc-Ag/Apól/End, Modalidade, Parcela,
+  Valor (R$), Vencimento, Vigência ajustada, Data Limite, Boleto e Alertas.
 
-Nenhum endpoint de parcelas pendentes foi observado sem autenticação.
+### Endpoint principal
 
-## Seletores e âncoras
+```text
+GET /pnegocios/wps/PA_BSPN-DBoardAuto-PU/api/parcelas/v1/list
+Content-Type: application/json
+```
 
-Ainda não aplicável à tela de dados. Na tela de login, foram observados textos
-semânticos (`Corretor`, `Assessoria`, `Produtor`, `Entrar`, `Continuar`) e os
-frames de reCAPTCHA. A receita de extração só deve ser escrita após a captura
-da tela autenticada.
+A chamada usa a sessão autenticada. Não foram observados parâmetros de query
+na captura; validar se filtros de data/paginação são enviados em outros fluxos.
 
-| Campo | Estratégia principal | Fallback | Observações |
-|---|---|---|---|
-| Seguradora | | | |
-| Segurado | | | |
-| Apólice | | | |
-| Ramo | | | |
-| Parcela | | | |
-| Vencimento | | | |
-| Valor | | | |
-| Produtor | | | |
-| Boleto | | | |
+### Estrutura do payload (nomes de campos)
 
-## Evidências
+```text
+{
+  "parcelas": [
+    {
+      "idParcela": int,
+      "segurado": {
+        "nome": str,
+        "email": str,
+        "cpfCnpj": str,
+        "telefones": ...
+      },
+      "corretor": { "codigo": ... },
+      "sucursal": str,
+      "apolice": int,
+      "item": int,
+      "endosso": str,
+      "prestacao": str,
+      "pagamento": str,
+      "premio": float,
+      "vencimento": str,
+      "dataLimite": str,
+      "vigAjustada": str,
+      "criticidade": bool,
+      "ramoSeguro": int,
+      "companhiaSeguradora": int,
+      "parcSistemaCobranca": str,
+      "dvParcSistemaCobranca": int,
+      "modalidade": str,
+      "agenciaProdutora": str,
+      "historicoEmail": ...,
+      "outrasParcelas": ...,
+      "qtdOutrasParcelas": int,
+      "sinistro": bool,
+      "apoliceEmCancelamento": bool
+    }
+  ],
+  "situacaoSistemas": {
+    "sistemasDisponiveis": bool,
+    "mensagem": str
+  },
+  "exibirSinistro": bool,
+  "pagamentoCartao": bool,
+  "corretor": { ... },
+  "produtor": bool
+}
+```
 
-- `summary.json`: URL, título, frames, navegações e contagem de rede.
-- `network.jsonl`: 19 entradas iniciais (assets, analytics, consentimento,
-  reCAPTCHA).
-- `page.png` / `page.html`: tela de login.
-- `trace.zip`: trace do Playwright.
-- `state.json`: sessão anônima (sem login).
+### Mapa para o domínio
 
-## Riscos e observações
+| JSON | Campo interno |
+|---|---|
+| `parcelas[].idParcela` | chave externa da parcela |
+| `segurado.nome` | `insured_name` |
+| `segurado.cpfCnpj` | CPF/CNPJ (mascarar) |
+| `sucursal` + `apolice` + `item` + `endosso` | `policy_number` / identificação |
+| `prestacao` | `installment_number` |
+| `premio` | `amount` |
+| `vencimento` | `due_date` |
+| `dataLimite` | `deadline` |
+| `vigAjustada` | vigência ajustada |
+| `parcSistemaCobranca` + `dvParcSistemaCobranca` | boleto |
+| `criticidade` | alerta de crítica |
+| `sinistro` | alerta de sinistro |
+| `apoliceEmCancelamento` | alerta de cancelamento |
+| `ramoSeguro` | ramo |
+| `companhiaSeguradora` | seguradora |
+| `modalidade` | modalidade/produto |
+| `corretor.codigo` | produtor/corretor |
+| `segurado.email`, `segurado.telefones` | contato (PII; usar com cautela) |
 
-- **reCAPTCHA v2 invisível** no login: automação de autenticação não é
-  permitida/confiável. O caminho correto é login manual assistido e reutilização
-  de sessão.
-- Headless pode ser tratado de forma diferente pelo portal; a captura
-  autenticada deve ser feita em navegador visível.
-- Termos de uso / restrições de automação: **validar antes de produção**.
-- Necessidade de intervenção humana: provável no login (captcha/MFA).
-- Dados pessoais observados na tela: nenhum nesta captura (pré-login).
+### Validação obrigatória
+
+- Se `situacaoSistemas.sistemasDisponiveis` for `false`, a coleta deve ser
+  `PARTIAL`/`FAILED` e nunca “sem pendências”.
+- Comparar `len(parcelas)` com a quantidade exibida no card/contador.
+- Validar `idParcela`, `apolice`, `prestacao`, `vencimento` e `premio` antes de
+  gravar.
+- Se o payload vier vazio com `sistemasDisponiveis=true`, é um vazio válido;
+  registrar evidência mesmo assim.
+
+## Propostas Pendentes (implementado)
+
+A tela **Propostas Pendentes** é outra funcionalidade: primeira parcela (CCB)
+aguardando pagamento para emissão da apólice. Não confundir com parcelas em
+atraso de apólices emitidas. O painel diferencia os tipos com `PARCELA` e
+`PROPOSTA`.
+
+- Container: `#container-propostas-pendentes-table`
+- Tabela: `#propostas-pendentes`
+- Endpoint: `GET /pnegocios/wps/PA_BSPN-DBoardAuto-PU/api/propostas/pendentes/v1/view`
+  (retorna fragmento HTML)
+- Exportação declarada: `.../api/propostas/pendentes/v1/xls-propostas-pendentes`
+- Contadores: `GET .../api/propostas/v1/contadores`
+- Linhas: `tbody tr[data-proposta]`
+- Quantidade esperada: `data-qtd-propostas-pendentes` na tabela.
+
+Campos usados no parser:
+
+| Dado | Origem |
+|---|---|
+| Proponente | `data-nome-segurado` |
+| Proposta | `data-proposta` + `data-sucursal` + `data-agencia` |
+| Vencimento da 1ª parcela | `td.td-data-vencimento` (fallback `data-order` de `td.td-vencimento`) |
+| Valor da 1ª parcela | `data-valor-primeira-parcela` (fallback regex no texto da célula) |
+| Boleto | `data-codigo-boleto` |
+| Segmento | `data-especialidade` |
+| Status da 1ª parcela | `data-vencimento-status` |
+| Retificação/vistoria/rastreador | `data-retificacao`, `data-vistoria-status`, `data-rastreador-status` |
+| Produtor | `data-corretor` / `data-nome-corretor` |
+| Tipo | fixo `PROPOSTA`; parcela = `PARCELA` |
+
+O parser valida a quantidade de linhas contra
+`data-qtd-propostas-pendentes`; divergência gera `AdapterError` (nunca
+snapshot parcial silencioso).
 
 ## Decisão de estratégia
 
-- [ ] API/integração oficial
-- [ ] Endpoint interno
-- [ ] DOM com Playwright
-- [ ] Bloqueado (motivo):
+- [x] **API JSON** para Parcelas em Atraso.
+- [x] **HTML do endpoint** para Propostas Pendentes.
+- [x] DOM/Playwright como fallback e para login manual.
+- [ ] API/integração oficial — verificar com a corretora/Bradesco.
+- [ ] Exportação XLS — avaliar como contingência.
 
-Justificativa: **pendente**. A prioridade é verificar se existe API/integração
-oficial para corretor; caso contrário, avaliar endpoint interno após login
-manual e, por último, DOM com Playwright usando sessão assistida.
+Justificativa: `/api/parcelas/v1/list` entrega JSON; propostas só têm o
+fragmento HTML. Ambos usam a mesma sessão e são normalizados para o mesmo
+contrato `RawInstallment`, diferenciados por `kind`.
+
+## Riscos e observações
+
+- reCAPTCHA no login: intervenção humana obrigatória.
+- Sessão expira; prever `AGUARDANDO_INTERVENCAO`.
+- Banner de cookies pode bloquear cliques no modo navegador.
+- Payload contém PII (nome, CPF/CNPJ, e-mail, telefone): mascarar, restringir
+  acesso e nunca commitar evidências.
+- Termos de uso/automação: validar antes de produção.
+- `situacaoSistemas=false` ou resposta incompleta deve gerar falha explícita.
+
+## Plugin implementado (2026-10-30)
+
+O plugin `src/corretor/plugins/bradesco/` está implementado:
+
+- `adapter.py`: abre o Playwright com `storage_state`, chama o endpoint JSON e
+  valida a sessão;
+- `mapping.py`: converte o payload JSON de parcelas em `RawInstallment`;
+- `proposals.py`: parseia o HTML de propostas e gera `RawInstallment` com
+  `kind=PROPOSTA`;
+- `plugin.py` / `manifest.yaml`: registro plug-and-play, `status: discovery`,
+  `requires_session: true`;
+- evidência bruta salva por execução em `data/evidence/`.
+
+Teste real:
+
+```bash
+cp data/discovery/bradesco/<timestamp>/state.json data/sessions/bradesco.json
+uv run python -m corretor.cli collect bradesco
+# [OK] Bradesco Seguros: Sucesso itens=2 novas=2 resolvidas=0
+```
+
+O teste retornou **1 parcela em atraso + 1 proposta pendente**, ambas com
+`kind` distinto no banco.
 
 ## Próximo passo
 
-Executar a descoberta com navegador visível e login manual:
+1. Promover o manifest de `discovery` para `ready` após validação em produção
+   assistida.
+2. Implementar o fallback DOM/Playwright para renovação assistida da sessão.
+3. Adicionar testes de mutação do payload (campos ausentes, tipos trocados,
+   `situacaoSistemas=false`).
+4. Repetir a descoberta para Allianz/Porto usando o mesmo contrato.
 
-```bash
-uv run --python 3.12 --with playwright python tools/discover_portal.py --slug bradesco
-```
-
-Navegar até a tela de parcelas pendentes, pressionar ENTER e atualizar este
-documento com URL, frames, endpoints e seletores. **Não registrar credenciais.**
+**Nunca** registrar credenciais neste documento ou nos testes.

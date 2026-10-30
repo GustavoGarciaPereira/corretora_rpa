@@ -24,8 +24,9 @@
 
 ### O que entra (In Scope)
 
-* Coleta automática diária, somente leitura, das parcelas pendentes nas seguradoras ativas.
-* Painel consolidado com seguradora, segurado, apólice, ramo, número da parcela, vencimento, valor, produtor e status.
+* Coleta automática diária, somente leitura, das **parcelas em atraso** e das **propostas pendentes** nas seguradoras ativas.
+* Separação explícita entre os tipos **Parcela** (apólice emitida) e **Proposta** (1ª parcela/CCB aguardando emissão), com filtro no painel.
+* Painel consolidado com seguradora, tipo, segurado, apólice/proposta, ramo, número da parcela, vencimento, valor, produtor e status.
 * Destaque de pendências novas, a vencer nos próximos 7 dias e vencidas.
 * Workflow de status: Detectada, Em análise, Avisada, Regularizada, Vencida e Descartada.
 * Registro de ação, novo vencimento, data limite, responsável, produtor e observações.
@@ -53,7 +54,8 @@
 
 ### Regras de Negócio
 
-* **Definição de parcela pendente:** parcela que o portal da seguradora apresenta como em aberto/não paga; parcelas quitadas não entram no controle.
+* **Definição de parcela pendente:** parcela de apólice já emitida que o portal apresenta como em aberto/não paga; parcelas quitadas não entram no controle.
+* **Definição de proposta pendente:** proposta aguardando emissão, com 1ª parcela (CCB) pendente. Não deve ser confundida com parcela de apólice emitida; o painel precisa exibir o tipo.
 * **Identidade única:** seguradora + apólice + número da parcela + vencimento. Reexecuções não podem duplicar pendências, históricos ou alertas.
 * **Frequência:** coleta automática em dias úteis, no fuso America/Sao_Paulo, com possibilidade de execução manual.
 * **Regularização automática:** uma parcela só pode ser marcada como Regularizada por ausência quando a coleta da seguradora terminar com sucesso. Em caso de falha, os status anteriores são preservados.
@@ -72,7 +74,7 @@
 * **Cenário 1: Coleta diária com pendências**
   * **Dado que** as seguradoras cadastradas estão ativas e acessíveis
   * **Quando** a coleta diária for executada
-  * **Então** o painel deve exibir todas as parcelas pendentes consolidadas com seguradora, segurado, apólice, ramo, parcela, vencimento, valor, produtor e status
+  * **Então** o painel deve exibir todas as pendências consolidadas com seguradora, tipo, segurado, apólice/proposta, ramo, parcela, vencimento, valor, produtor e status
   * **E** as pendências novas devem ser destacadas
   * **E** o resumo e a data da última coleta devem ser atualizados
   * **E** uma nova execução no mesmo dia não pode gerar duplicatas

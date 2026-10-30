@@ -1,5 +1,9 @@
 # Plano de Execução — Corretor RPA
 
+> **Status em 2026-10-30:** fase 0 concluída; plugin Bradesco coletando
+> “Parcelas em Atraso” (JSON) e “Propostas Pendentes” (HTML) com sessão manual.
+> Próximo marco: validação assistida em produção e adapter Allianz.
+
 ## Princípios
 
 - Entregas **verticais**: cada etapa termina com algo funcionando de ponta a

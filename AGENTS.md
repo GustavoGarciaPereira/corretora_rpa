@@ -13,6 +13,12 @@ parcela esquecida pode deixar o cliente sem cobertura e gerar perda de comissão
 novidades, listar no painel e registrar evidências. Alertas externos e
 integração com ERP/CRM ficam para fases posteriores.
 
+**Estado em 2026-10-30:** fase 0 concluída. Painel FastAPI + Jinja/HTMX,
+loader de plugins, adapter demo, CLI e testes verdes. O plugin Bradesco coleta
+**Parcelas em Atraso** (JSON) e **Propostas Pendentes** (HTML), usando sessão
+manual salva; falta validar em produção e implementar Allianz/receita
+declarativa.
+
 **Fora de escopo (não implementar sem pedido explícito):**
 
 - pagar, emitir boleto, cancelar apólice ou qualquer ação financeira;
@@ -74,44 +80,78 @@ Dependências apontam **sempre para dentro**. O centro é o domínio; detalhes
 
 ```
 src/corretor/
-  domain/            # entidades, enums, erros e portas puras (sem IO)
-    entities.py
-    enums.py
-    errors.py
-    ports.py         # InsurerAdapter, Clock
-  application/       # casos de uso e regras de aplicação
-    dto.py
-    ports.py         # Store, AdapterProvider, EvidenceStore, Clock
-    normalization.py
-    diff.py
-    collection.py    # CollectInsurer/CollectAll
-    pendency.py      # UpdatePendency, UpdateStatus, MarkOverdue
-  infrastructure/    # implementações concretas
-    config.py
-    db.py
-    models.py
-    persistence/store.py
-    evidence.py
-    clock.py
-    plugins/loader.py
-    scheduler.py
-    container.py     # composition root (wiring manual)
-  interfaces/        # entrada/saída
-    web/             # FastAPI, rotas, Jinja, HTMX, static
+  domain/                 # entidades, enums, erros e portas puras (sem IO)
+    entities/             # uma classe por arquivo + __init__ reexportando
+      adapter_manifest.py
+      plugin_context.py
+      raw_installment.py
+      insurer.py
+      policy.py
+      installment.py
+      pendency.py
+      pendency_event.py
+      collection_run.py
+    enums/
+      workflow_status.py
+      run_status.py
+    errors/               # uma exceção por arquivo
+    ports/
+      insurer_adapter.py
+      clock.py
+  application/            # casos de uso e regras de aplicação
+    dto/                  # um DTO por arquivo
+    ports/                # Store, AdapterProvider, EvidenceStore etc.
+    logic/                # funções puras: normalization.py, diff.py
+    services/             # CollectionService, PendencyService
+  infrastructure/         # implementações concretas
+    config/settings.py
+    clock/system_clock.py
+    persistence/
+      database.py
+      store.py            # SqlAlchemyStore
+      models/             # um model ORM por arquivo
+        base.py
+        insurer.py
+        policy.py
+        installment.py
+        pendency.py
+        pendency_event.py
+        collection_run.py
+    evidence/file_evidence_store.py
+    plugins/
+      registry.py
+      loaded_plugin.py
+      plugin_load_error.py
+    container.py          # composition root (wiring manual)
+  interfaces/             # entrada/saída
+    web/
+      app.py
+      dependencies.py
+      filters.py
+      routes/             # um módulo de rotas por domínio
+      templates/
+      static/
     cli.py
-  plugins/           # adapters plug-and-play (não são camada de negócio)
+  plugins/                # adapters plug-and-play (não são camada de negócio)
     demo/
       manifest.yaml
       plugin.py
       adapter.py
-    _template/       # modelo para nova seguradora; ignorado pelo loader
-  main.py            # app = create_app()
+    bradesco/
+      manifest.yaml
+      plugin.py
+      adapter.py
+      mapping.py
+    _template/            # modelo para nova seguradora; ignorado pelo loader
+  main.py                 # app = create_app()
 tests/
   application/
   interfaces/
   plugins/
 docs/
   PRD.md
+  PLANO.md
+  adapters/bradesco.md
 ```
 
 ### Regra de dependência (não violar)
@@ -126,6 +166,22 @@ docs/
   `infrastructure` nem `interfaces`.
 - `container.py` é o único lugar que conhece todas as implementações concretas.
 - Regra de negócio não mora em rota, template, model ORM ou plugin.
+
+### Convenção de arquivos (obrigatória)
+
+- **Uma classe por arquivo.** Exceções: funções puras, constantes e tipos
+  auxiliares podem compartilhar o arquivo da classe a que pertencem.
+- Arquivos do mesmo domínio ficam na mesma pasta: `entities/`, `enums/`,
+  `errors/`, `ports/`, `dto/`, `services/`, `models/`, `routes/`.
+- Cada pasta tem `__init__.py` que **reexporta** os nomes públicos, para que os
+  imports externos fiquem curtos (`from corretor.domain.entities import ...`).
+- Rotas são funções agrupadas por domínio (`routes/dashboard.py`,
+  `routes/pendencies.py`); não criar classe de rota.
+- Nome de arquivo em `snake_case`; classe em `PascalCase`; protocolos e DTOs
+  também em `PascalCase`.
+- Um arquivo novo de model ORM deve ser importado em
+  `persistence/models/__init__.py` para registrar no metadata.
+- Não criar “utils.py” genérico: a função deve morar no domínio mais próximo.
 
 ### Fluxo de coleta
 
@@ -151,8 +207,10 @@ class RawInstallment:
     producer: str = ""
     boleto_url: str = ""
 
+
 class InsurerAdapter(Protocol):
     manifest: AdapterManifest
+
     def fetch_pending(self) -> list[RawInstallment]: ...
 ```
 
@@ -190,15 +248,17 @@ mode: python        # python | recipe
 status: ready       # ready | discovery | disabled
 capabilities:
   - read_only
+requires_session: false
 ```
 
 `plugin.py`:
 
 ```python
-from corretor.domain.entities import AdapterManifest
+from corretor.domain.entities import AdapterManifest, PluginContext
 from .adapter import DemoAdapter
 
-def create_adapter(manifest: AdapterManifest) -> DemoAdapter:
+
+def create_adapter(manifest: AdapterManifest, context: PluginContext) -> DemoAdapter:
     return DemoAdapter(manifest)
 ```
 
@@ -253,8 +313,8 @@ Regras obrigatórias:
 |---|---|
 | `insurers` | `id`, `slug` UNIQUE, `name`, `adapter`, `active`, `last_run_at`, `last_success_at` |
 | `collection_runs` | `id`, `insurer_id`, `status`, `started_at`, `finished_at`, `items_found`, `new_count`, `resolved_count`, `error`, `evidence_path` |
-| `policies` | `id`, `insurer_id`, `policy_number`, `insured_name`, `branch`, `producer`; UNIQUE (`insurer_id`, `policy_number`) |
-| `installments` | `id`, `policy_id`, `number`, `due_date`, `amount_cents`, `boleto_url`, `is_active`, `first_seen_at`, `last_seen_at`; UNIQUE (`policy_id`, `number`, `due_date`) |
+| `policies` | `id`, `insurer_id`, `kind`, `policy_number`, `insured_name`, `branch`, `producer`; UNIQUE (`insurer_id`, `kind`, `policy_number`) |
+| `installments` | `id`, `policy_id`, `number`, `due_date`, `amount_cents`, `boleto_url`, `boleto_code`, `external_id`, `alerts`, `is_active`, `first_seen_at`, `last_seen_at`; UNIQUE (`policy_id`, `number`, `due_date`) |
 | `pendencies` | `id`, `installment_id` UNIQUE, `workflow_status`, `action`, `new_due_date`, `deadline`, `assigned_to`, `notes`, timestamps |
 | `pendency_events` | `id`, `pendency_id`, `from_status`, `to_status`, `note`, `created_at` (auditoria) |
 
@@ -264,6 +324,16 @@ Convenções:
 - datas de vencimento em `date` (ISO); timestamps em **UTC** (naive no SQLite);
 - exibição no fuso `America/Sao_Paulo`;
 - sem soft delete; presença no snapshot é controlada por `installments.is_active`.
+
+### Tipos de pendência (`kind`)
+
+- `PARCELA`: parcela de apólice já emitida (ex.: “Parcelas em Atraso”).
+- `PROPOSTA`: proposta pendente / 1ª parcela (CCB) aguardando emissão
+  (ex.: “Propostas Pendentes”).
+- A chave de deduplicação inclui o tipo: (`kind`, `policy_number`,
+  `installment_number`, `due_date`). Uma proposta e uma apólice com o mesmo
+  número não colidem.
+- O painel deve exibir o tipo e permitir filtrar por ele.
 
 ### Status do workflow
 
@@ -285,8 +355,8 @@ DETECTADA → EM_ANALISE → AVISADA → REGULARIZADA
 
 ### Regras de diff
 
-- Chave de deduplicação: (`insurer`, `policy_number`, `installment_number`,
-  `due_date`).
+- Chave de deduplicação: (`insurer`, `kind`, `policy_number`,
+  `installment_number`, `due_date`).
 - Execução bem-sucedida: parcelas ativas ausentes do snapshot viram
   `is_active=False` e a pendência aberta vira `REGULARIZADA` automaticamente,
   com evento “não consta na coleta de <data>”.
@@ -316,12 +386,13 @@ DETECTADA → EM_ANALISE → AVISADA → REGULARIZADA
 
 ```bash
 uv venv --python 3.12
-uv pip install -e ".[dev]"
+uv pip install -e ".[dev,rpa]"
 cp .env.example .env
 
 uv run python -m corretor.cli init-db
-uv run python -m corretor.cli seed          # seguradoras + dados demo fictícios
+uv run python -m corretor.cli seed          # demo + dados fictícios
 uv run python -m corretor.cli collect all   # coleta manual
+uv run python -m corretor.cli collect bradesco  # exige sessão salva
 uv run python -m corretor.cli plugins       # lista plugins e erros
 uv run uvicorn corretor.main:app --reload
 
@@ -330,9 +401,17 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
+Bradesco: gere a sessão com login manual (nunca salve a senha), copie o
+`state.json` para `data/sessions/bradesco.json` e rode
+`uv run python -m corretor.cli collect bradesco`. O plugin está com
+`status: discovery`; a coleta manual funciona, mas ele não entra no seed nem no
+agendador até ser promovido a `ready`.
+
 Configuração por ambiente (`.env`): `DATABASE_URL`, `EVIDENCE_DIR`,
 `ENABLE_SCHEDULER`, `SCHEDULER_HOUR`, `SCHEDULER_MINUTE`, `TIMEZONE`,
-`STALE_AFTER_HOURS`, `PLUGIN_PATHS`, `SEED_DEMO`, `LOG_LEVEL`.
+`STALE_AFTER_HOURS`, `PLUGIN_PATHS`, `SEED_DEMO`, `LOG_LEVEL`,
+`BRADESCO_STATE_PATH`, `BRADESCO_ENDPOINT`, `BRADESCO_PROPOSALS_ENDPOINT`,
+`BRADESCO_COLLECT_PROPOSALS`, `BRADESCO_HEADLESS`, `BRADESCO_TIMEOUT_MS`.
 
 ## 10. Convenções de código
 
@@ -380,10 +459,10 @@ Uma entrega só termina quando:
 
 | Fase | Entrega |
 |---|---|
-| 0 | Scaffold Clean Architecture + loader de plugins + adapter demo + painel Jinja/HTMX + testes |
-| 1 | Primeiro adapter real (Allianz como candidato) + receita declarativa + evidência + página de plugins |
+| 0 | **Concluída:** Clean Architecture + loader de plugins + adapter demo + painel Jinja/HTMX + CLI + testes |
+| 1 | **Bradesco concluído** (parcelas via JSON + propostas via HTML, sessão manual); falta Allianz e receita declarativa com fallbacks |
 | 2 | Scheduler diário, watchdog, digest interno, workflow completo e `/healthz` |
-| 3 | Bradesco/Porto, testes de mutação, fallback LLM, Postgres/Docker |
+| 3 | Porto, testes de mutação, fallback LLM, Postgres/Docker; Bradesco em produção assistida |
 | 4 | Integração com o sistema da corretora (API/webhook com idempotência) |
 
 ## 14. Perguntas em aberto

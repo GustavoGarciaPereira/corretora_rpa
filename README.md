@@ -4,8 +4,10 @@ Monitoramento diário de **parcelas pendentes** nas seguradoras, com painel
 consolidado, workflow de tratamento e arquitetura plug-and-play para novos
 portais.
 
-> **Status:** fase 0 (scaffold). A documentação de produto e engenharia está
-> pronta; a aplicação será construída sobre ela.
+> **Status:** fase 0 concluída. Painel FastAPI + Jinja/HTMX, loader de plugins,
+> adapter demo, CLI e testes verdes. O plugin **Bradesco** coleta **Parcelas em
+> Atraso** (JSON) e **Propostas Pendentes** (HTML) usando sessão manual salva;
+> falta validação em produção e o adapter Allianz.
 
 ## Documentos
 
@@ -28,6 +30,8 @@ comissão.
 - Painel único com seguradora, segurado, apólice, ramo, parcela, vencimento,
   valor, produtor e status.
 - Destaque de pendências novas, a vencer e vencidas.
+- Separação entre **Parcelas** (apólices emitidas) e **Propostas** (1ª parcela/
+  CCB aguardando emissão), com filtro por tipo.
 - Workflow: Detectada → Em análise → Avisada → Regularizada / Vencida / Descartada.
 - Status de saúde da coleta por seguradora — falha nunca vira “sem pendências”.
 - Novas seguradoras entram como **plugins**, sem alterar o núcleo.
@@ -58,16 +62,36 @@ infrastructure (SQLAlchemy, arquivos, plugins, scheduler)
 ```
 src/corretor/
   domain/
+    entities/       # uma classe por arquivo
+    enums/
+    errors/
+    ports/
   application/
+    dto/            # um DTO por arquivo
+    ports/
+    logic/          # normalização e diff (funções puras)
+    services/       # CollectionService, PendencyService
   infrastructure/
+    config/
+    clock/
+    persistence/
+      models/       # um model ORM por arquivo
+    evidence/
+    plugins/
+    container.py
   interfaces/
-    web/            # templates Jinja + partials HTMX + static
+    web/
+      routes/       # um módulo de rotas por domínio
+      templates/
+      static/
     cli.py
   plugins/
     demo/
+    bradesco/
       manifest.yaml
       plugin.py
       adapter.py
+      mapping.py
     _template/      # modelo para nova seguradora (ignorado pelo loader)
   main.py
 tests/
@@ -76,14 +100,19 @@ tests/
   plugins/
 docs/
   PRD.md
+  PLANO.md
+  adapters/bradesco.md
 ```
+
+Convenção: **uma classe por arquivo**, arquivos do mesmo domínio na mesma
+pasta e `__init__.py` reexportando os nomes públicos.
 
 ## Como adicionar uma seguradora (plug-and-play)
 
 1. Copie `src/corretor/plugins/_template/` para
    `src/corretor/plugins/<slug>/`.
 2. Ajuste `manifest.yaml` (`slug`, `name`, `version`, `status`).
-3. Implemente `create_adapter(manifest)` retornando um objeto com
+3. Implemente `create_adapter(manifest, context)` retornando um objeto com
    `fetch_pending() -> list[RawInstallment]`.
 4. Garanta que a coleta devolva um **snapshot completo** e levante
    `AdapterError` em caso de falha/parse parcial.
@@ -109,6 +138,34 @@ uv run --python 3.12 --with playwright python tools/discover_portal.py --slug br
 
 Detalhes em [`tools/README.md`](tools/README.md).
 
+## Bradesco (plugin JSON)
+
+O plugin `bradesco` usa dois endpoints, com a mesma sessão autenticada:
+
+- **Parcelas em Atraso:** `/pnegocios/wps/PA_BSPN-DBoardAuto-PU/api/parcelas/v1/list`
+  (JSON);
+- **Propostas Pendentes:** `/pnegocios/wps/PA_BSPN-DBoardAuto-PU/api/propostas/pendentes/v1/view`
+  (fragmento HTML).
+
+Ele reutiliza uma sessão autenticada salva pelo Playwright — **nenhuma senha
+fica no projeto**.
+
+```bash
+# 1. gere a sessão com login manual
+uv run --python 3.12 --with playwright python tools/discover_portal.py --slug bradesco
+
+# 2. copie o state.json da captura para o caminho configurado
+cp data/discovery/bradesco/<timestamp>/state.json data/sessions/bradesco.json
+
+# 3. colete
+uv run python -m corretor.cli collect bradesco
+```
+
+O manifest está com `status: discovery`; a coleta manual funciona, mas o plugin
+não entra no seed nem no agendador até ser promovido a `ready`. Se a sessão
+expirar, a execução fica `AGUARDANDO_INTERVENCAO` e é preciso refazer o login
+manual. Detalhes em [`docs/adapters/bradesco.md`](docs/adapters/bradesco.md).
+
 ## Stack
 
 - Python 3.12 + `uv`
@@ -119,11 +176,11 @@ Detalhes em [`tools/README.md`](tools/README.md).
 - pytest + ruff
 - Playwright (opcional, extra `rpa`)
 
-## Setup (após o scaffold da fase 0)
+## Setup
 
 ```bash
 uv venv --python 3.12
-uv pip install -e ".[dev]"
+uv pip install -e ".[dev,rpa]"
 cp .env.example .env
 
 uv run python -m corretor.cli init-db
@@ -137,6 +194,8 @@ Acesse `http://127.0.0.1:8000`.
 
 ```bash
 uv run python -m corretor.cli collect all
+uv run python -m corretor.cli collect bradesco
+uv run python -m corretor.cli mark-overdue
 uv run python -m corretor.cli plugins
 uv run pytest -q
 uv run ruff check . && uv run ruff format --check .
@@ -146,7 +205,9 @@ uv run ruff check . && uv run ruff format --check .
 
 `DATABASE_URL`, `EVIDENCE_DIR`, `ENABLE_SCHEDULER`, `SCHEDULER_HOUR`,
 `SCHEDULER_MINUTE`, `TIMEZONE`, `STALE_AFTER_HOURS`, `PLUGIN_PATHS`,
-`SEED_DEMO`, `LOG_LEVEL`.
+`SEED_DEMO`, `LOG_LEVEL`, `BRADESCO_STATE_PATH`, `BRADESCO_ENDPOINT`,
+`BRADESCO_PROPOSALS_ENDPOINT`, `BRADESCO_COLLECT_PROPOSALS`,
+`BRADESCO_HEADLESS`, `BRADESCO_TIMEOUT_MS`.
 
 ## Segurança e LGPD
 
@@ -164,8 +225,8 @@ uv run ruff check . && uv run ruff format --check .
 
 | Fase | Entrega |
 |---|---|
-| 0 | Scaffold Clean Architecture + plugins + adapter demo + painel + testes |
-| 1 | Primeiro adapter real (Allianz) + receita declarativa + evidências |
+| 0 | **Concluída:** Clean Architecture + plugins + adapter demo + painel + CLI + testes |
+| 1 | **Bradesco concluído** (parcelas via JSON + propostas via HTML, sessão manual); falta Allianz e receita declarativa |
 | 2 | Scheduler, watchdog, digest interno e workflow completo |
-| 3 | Bradesco/Porto, testes de mutação, fallback LLM, Postgres/Docker |
+| 3 | Porto, testes de mutação, fallback LLM, Postgres/Docker |
 | 4 | Integração com ERP/CRM via API/webhook idempotente |
