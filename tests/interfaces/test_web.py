@@ -123,21 +123,17 @@ def test_modal_de_sessao_expirada(settings, monkeypatch) -> None:
     with TestClient(app) as client:
         app.state.container.seed_demo()
 
-        class FakeCollectionService:
-            def collect_all(self):
-                return [
-                    CollectionOutcome(
-                        insurer_slug="bradesco",
-                        insurer_name="Bradesco Seguros",
-                        status=RunStatus.NEEDS_ATTENTION,
-                        error="sessão do Bradesco expirada",
-                    )
-                ]
-
         monkeypatch.setattr(
             app.state.container,
-            "collection_service",
-            lambda store: FakeCollectionService(),
+            "collect_all",
+            lambda: [
+                CollectionOutcome(
+                    insurer_slug="bradesco",
+                    insurer_name="Bradesco Seguros",
+                    status=RunStatus.NEEDS_ATTENTION,
+                    error="sessão do Bradesco expirada",
+                )
+            ],
         )
         response = client.post("/collect")
         assert response.status_code == 200
