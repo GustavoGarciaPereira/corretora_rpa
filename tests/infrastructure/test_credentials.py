@@ -11,7 +11,7 @@ from corretor.infrastructure.credentials import (
 )
 
 
-def test_resolve_credenciais_por_env_prioriza_login_cnpj() -> None:
+def test_resolve_credenciais_por_env_separa_cnpj_e_cpf() -> None:
     settings = Settings(
         bradesco_credential_source="env",
         bradesco_login="11222333000181",
@@ -19,7 +19,8 @@ def test_resolve_credenciais_por_env_prioriza_login_cnpj() -> None:
         bradesco_login_password=SecretStr("segredo"),
     )
     credentials = resolve_bradesco_credentials(settings)
-    assert credentials.user == "11222333000181"
+    assert credentials.login == "11222333000181"
+    assert credentials.user == "12345678901"
     assert credentials.password == "segredo"
     assert credentials_available(settings) is True
 
@@ -31,7 +32,9 @@ def test_login_user_e_fallback_quando_login_vazio() -> None:
         bradesco_login_user="12345678901",
         bradesco_login_password=SecretStr("segredo"),
     )
-    assert resolve_bradesco_credentials(settings).user == "12345678901"
+    credentials = resolve_bradesco_credentials(settings)
+    assert credentials.login == "12345678901"
+    assert credentials.user == "12345678901"
 
 
 def test_env_incompleto_falha() -> None:

@@ -4,7 +4,7 @@ import pytest
 from pydantic import SecretStr
 
 from corretor.domain.entities import AdapterManifest, PluginContext
-from corretor.domain.errors import AdapterNotConfigured
+from corretor.domain.errors import AdapterNotConfigured, AdapterSessionExpired
 from corretor.plugins.bradesco.adapter import BradescoAdapter
 from corretor.plugins.bradesco.api_adapter import BradescoApiAdapter
 from corretor.plugins.bradesco.plugin import create_adapter
@@ -32,6 +32,20 @@ def test_sem_parcelas_e_sem_propostas_falha_explicitamente() -> None:
         PluginContext(settings={"bradesco_collect_proposals": False}),
     )
     with pytest.raises(AdapterNotConfigured, match="desativada"):
+        adapter.fetch_pending()
+
+
+def test_sem_sessao_salva_falha_como_expirada(tmp_path) -> None:
+    adapter = BradescoAdapter(
+        manifest(),
+        PluginContext(
+            settings={
+                "bradesco_proposals_endpoint": "https://example.invalid/propostas",
+                "bradesco_state_path": str(tmp_path / "ausente.json"),
+            }
+        ),
+    )
+    with pytest.raises(AdapterSessionExpired, match="não encontrada"):
         adapter.fetch_pending()
 
 

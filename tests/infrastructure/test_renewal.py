@@ -42,3 +42,14 @@ def test_resultado_running_orfao_vira_erro(tmp_path) -> None:
     status = manager.status()
     assert status.status == "error"
     assert "expirou" in status.message
+
+
+def test_forcar_expiracao_remove_sessao_e_resultado(tmp_path) -> None:
+    manager = SessionRenewalManager(settings(tmp_path))
+    manager.settings.bradesco_state_path.write_text("{}", encoding="utf-8")
+    manager.result_path.write_text("{}", encoding="utf-8")
+
+    assert manager.force_expire() is True
+    assert not manager.settings.bradesco_state_path.exists()
+    assert not manager.result_path.exists()
+    assert manager.force_expire() is False

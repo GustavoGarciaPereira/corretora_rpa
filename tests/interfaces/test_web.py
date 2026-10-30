@@ -118,6 +118,28 @@ def test_renovacao_mostra_status_de_espera(settings, monkeypatch) -> None:
         assert "Aguardando login" in response.text
 
 
+def test_forcar_expiracao_remove_sessao_salva(settings) -> None:
+    app = create_app(settings)
+    settings.bradesco_state_path.write_text("{}", encoding="utf-8")
+
+    with TestClient(app) as client:
+        with app.state.container.session() as store:
+            store.create_insurer("bradesco", "Bradesco Seguros", "bradesco")
+        app.state.container.renewal.result_path.write_text("{}", encoding="utf-8")
+
+        response = client.post("/sessions/bradesco/expire", follow_redirects=False)
+        assert response.status_code == 303
+        assert response.headers["location"] == "/sessions?expired=1"
+        assert not settings.bradesco_state_path.exists()
+        assert not app.state.container.renewal.result_path.exists()
+
+        page = client.get("/sessions?expired=1")
+        assert page.status_code == 200
+        assert "Sessão forçada a expirar" in page.text
+        assert "não encontrado" in page.text
+        assert "expirada" in page.text
+
+
 def test_modal_de_sessao_expirada(settings, monkeypatch) -> None:
     app = create_app(settings)
     with TestClient(app) as client:
