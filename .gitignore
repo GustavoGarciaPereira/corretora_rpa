@@ -1,0 +1,28 @@
+# Segredos e dados locais — nunca commitar
+.env
+senha
+links.txt
+data/
+*.db
+*.sqlite3
+*.log
+
+# Imagens locais com possíveis dados pessoais
+*.jpeg
+*.jpg
+*.png
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# Editores / SO
+.DS_Store
+.idea/
+.vscode/

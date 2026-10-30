@@ -1,0 +1,4 @@
+exemplo: Consultar se tem parcelas pendentes em cada seguradora.
+Qual nossa dor: Ter que entrar, todos os dias, no portal de cada seguradora e ver se tem alguma parcela pendente
+Solução: Automatizar este fluxo via API pra ele fazer isso diariamente e listar no nosso sistema
+usuário tem que dar em torno de 4 a 5 cliques em cada portal pra consultar
