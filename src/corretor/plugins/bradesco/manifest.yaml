@@ -1,0 +1,9 @@
+slug: bradesco
+name: Bradesco Seguros
+version: 0.1.0
+description: Parcelas em atraso do Auto via endpoint JSON autenticado
+mode: python
+status: discovery
+capabilities:
+  - read_only
+requires_session: true
