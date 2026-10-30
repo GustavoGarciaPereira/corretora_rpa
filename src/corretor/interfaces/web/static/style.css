@@ -482,6 +482,52 @@ tr.row-overdue:hover {
   white-space: nowrap;
 }
 
+.command {
+  background: #101828;
+  border-radius: 8px;
+  color: #f9fafb;
+  font-size: 0.75rem;
+  overflow-x: auto;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.modal-overlay {
+  align-items: center;
+  background: rgba(16, 24, 40, 0.55);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 20px;
+  position: fixed;
+  z-index: 100;
+}
+
+.modal-card {
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: 0 20px 40px rgba(16, 24, 40, 0.25);
+  max-height: 90vh;
+  max-width: 560px;
+  overflow-y: auto;
+  padding: 22px;
+  width: 100%;
+}
+
+.modal-card h2 {
+  margin-bottom: 10px;
+}
+
+.modal-card ul {
+  margin: 8px 0 14px;
+  padding-left: 20px;
+}
+
+.modal-card .actions {
+  margin-top: 16px;
+}
+
 .status-select {
   border-radius: 999px;
   font-size: 0.78rem;

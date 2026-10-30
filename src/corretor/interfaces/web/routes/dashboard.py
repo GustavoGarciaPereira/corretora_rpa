@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from corretor.domain.enums import RunStatus
 from corretor.infrastructure.container import Container
 from corretor.infrastructure.persistence import SqlAlchemyStore
 
@@ -53,6 +54,7 @@ def collect_now(
     outcomes = container.collection_service(store).collect_all()
     successes = sum(1 for outcome in outcomes if outcome.ok)
     failures = len(outcomes) - successes
+    attention = [outcome for outcome in outcomes if outcome.status is RunStatus.NEEDS_ATTENTION]
     if not outcomes:
         message = "Nenhuma seguradora ativa para coletar."
         kind = "warning"
@@ -71,6 +73,7 @@ def collect_now(
         partial=True,
         message=message,
         message_kind=kind,
+        attention=attention,
     )
 
 

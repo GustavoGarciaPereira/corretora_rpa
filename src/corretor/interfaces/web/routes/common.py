@@ -74,9 +74,11 @@ def render_dashboard(
     partial: bool,
     message: str = "",
     message_kind: str = "success",
+    attention: list | None = None,
 ):
     context = dashboard_context(
         request, store, container, filters, message=message, message_kind=message_kind
     )
+    context["attention"] = attention or []
     name = "partials/dashboard_content.html" if partial else "dashboard.html"
     return templates.TemplateResponse(request=request, name=name, context=context)

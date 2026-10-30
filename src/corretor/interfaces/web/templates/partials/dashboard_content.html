@@ -1,3 +1,26 @@
+{% if attention %}
+<div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="session-title">
+  <div class="modal-card">
+    <h2 id="session-title">Sessão expirada</h2>
+    <p>Não foi possível coletar:</p>
+    <ul>
+      {% for outcome in attention %}
+      <li><strong>{{ outcome.insurer_name }}</strong> — {{ outcome.error|short(140) }}</li>
+      {% endfor %}
+    </ul>
+    <p class="muted">
+      Renove a sessão no navegador e tente novamente. O reCAPTCHA exige
+      intervenção humana.
+    </p>
+    <div class="actions">
+      <a class="btn primary" href="/sessions">Renovar sessão</a>
+      <button class="btn" type="button"
+              onclick="this.closest('.modal-overlay').remove()">Fechar</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {% if message %}
 <div class="flash {{ message_kind }}">{{ message }}</div>
 {% endif %}

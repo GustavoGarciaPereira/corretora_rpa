@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Sessões · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Sessões dos portais</h1>
+    <p class="muted">Acompanhe a validade da sessão e renove quando o portal expirar.</p>
+  </div>
+  <a class="btn" href="/">Voltar ao painel</a>
+</div>
+
+<div class="flash warning">
+  O login dos portais usa reCAPTCHA. A renovação é <strong>assistida</strong>:
+  o operador faz o login manual uma vez e o sistema reutiliza a sessão.
+</div>
+
+<div class="plugin-grid">
+  {% for row in rows %}
+  {% set item = row.health %}
+  <article class="card plugin-card">
+    <div class="plugin-head">
+      <strong>{{ item.name }}</strong>
+      <span class="badge {{ row.badge }}">{{ row.label }}</span>
+    </div>
+    <div class="plugin-health">
+      <div>Último sucesso: {{ item.last_success_at|datetimebr }}</div>
+      <div>Última execução: {{ item.last_status.label if item.last_status else "—" }}</div>
+      {% if item.last_error %}
+      <div class="muted small">{{ item.last_error|short(160) }}</div>
+      {% endif %}
+    </div>
+
+    {% if item.slug == 'bradesco' %}
+    <div class="session-box">
+      <div>
+        Arquivo de sessão:
+        <strong>{{ 'encontrado' if bradesco_state_exists else 'não encontrado' }}</strong>
+      </div>
+      <code>{{ bradesco_state_path }}</code>
+    </div>
+    <p class="small"><strong>Renovar:</strong></p>
+    <pre class="command">{{ renew_bradesco }}</pre>
+    <p class="muted small">
+      Faça o login manual, navegue até AUTO/Propostas Pendentes e clique em
+      Resume no Playwright Inspector. Depois copie o novo
+      <code>state.json</code> para o caminho acima.
+    </p>
+    {% else %}
+    <p class="muted small">
+      Este portal ainda não possui fluxo de renovação assistida configurado.
+    </p>
+    {% endif %}
+  </article>
+  {% else %}
+  <div class="empty">Nenhuma seguradora ativa cadastrada.</div>
+  {% endfor %}
+</div>
+{% endblock %}
