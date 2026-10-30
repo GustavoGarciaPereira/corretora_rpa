@@ -17,6 +17,7 @@ def settings(tmp_path) -> Settings:
         seed_demo=False,
         plugin_paths="",
         bradesco_state_path=tmp_path / "bradesco-state.json",
+        bradesco_auto_login_enabled=False,
         log_level="WARNING",
     )
 

@@ -36,7 +36,7 @@ def test_painel_coleta_e_workflow(settings) -> None:
         assert sessions.status_code == 200
         assert "Sessões dos portais" in sessions.text
         assert "Seguradora Demo" in sessions.text
-        assert "Renovar sessão agora" in sessions.text
+        assert "Renovar manualmente" in sessions.text
 
         health = client.get("/healthz")
         assert health.status_code == 200
@@ -114,7 +114,7 @@ def test_renovacao_mostra_status_de_espera(settings, monkeypatch) -> None:
         )
         response = client.post("/sessions/bradesco/renew")
         assert response.status_code == 200
-        assert "Navegador aberto" in response.text
+        assert "Renovação em andamento" in response.text
         assert "Aguardando login" in response.text
 
 
