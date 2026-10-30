@@ -1,0 +1,9 @@
+slug: template
+name: Minha Seguradora
+version: 0.1.0
+description: Modelo para criar um novo plugin de seguradora
+mode: python
+status: discovery
+capabilities:
+  - read_only
+requires_session: false

@@ -1,0 +1,9 @@
+slug: demo
+name: Seguradora Demo
+version: 0.1.0
+description: Adapter fictício para desenvolvimento e demonstração
+mode: python
+status: ready
+capabilities:
+  - read_only
+requires_session: false
