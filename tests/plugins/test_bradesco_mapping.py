@@ -31,7 +31,7 @@ def payload() -> dict:
                 "premio": 123.45,
                 "vencimento": "10/11/2026",
                 "dataLimite": "15/11/2026",
-                "vigAjustada": "01/11/2026",
+                "vigAjustada": "01/11/2026 a 01/11/2027",
                 "criticidade": True,
                 "ramoSeguro": 990,
                 "companhiaSeguradora": 1,
@@ -60,6 +60,8 @@ def test_mapeia_payload_para_raw_installment() -> None:
     assert item.boleto_code == "1234"
     assert item.external_id == "987"
     assert item.producer == "12345"
+    assert item.payment_method == "Boleto"
+    assert item.adjusted_vigency == "01/11/2026 a 01/11/2027"
     assert "Com crítica" in item.alerts
     assert "2 outra(s) parcela(s)" in item.alerts
 

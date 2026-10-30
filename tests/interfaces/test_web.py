@@ -76,4 +76,14 @@ def test_painel_coleta_e_workflow(settings) -> None:
         assert "text/csv" in csv_response.headers["content-type"]
         assert "Seguradora" in csv_response.text
 
+        planilha = client.get("/planilha")
+        assert planilha.status_code == 200
+        assert "Controle de parcelas pendentes" in planilha.text
+        assert "PENDENTE" in planilha.text
+
+        planilha_csv = client.get("/export-planilha.csv")
+        assert planilha_csv.status_code == 200
+        assert "DATA AÇÃO" in planilha_csv.text
+        assert "PENDENTE" in planilha_csv.text
+
         assert client.get("/pendencies/999999").status_code == 404

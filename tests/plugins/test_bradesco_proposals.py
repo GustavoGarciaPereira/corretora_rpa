@@ -26,6 +26,9 @@ def test_mapeia_proposta_pendente() -> None:
     assert item.boleto_code == "20000000001"
     assert item.external_id == "123456789"
     assert item.producer == "12345"
+    assert item.payment_method == "Boleto"
+    assert item.adjusted_vigency == "22/10/2026 a 22/10/2027"
+    assert item.insurer_status == "Processando nova chance"
     assert "Processando nova chance" in item.alerts
 
 
