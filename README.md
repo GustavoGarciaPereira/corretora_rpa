@@ -32,6 +32,9 @@ comissão.
 - Destaque de pendências novas, a vencer e vencidas.
 - Separação entre **Parcelas** (apólices emitidas) e **Propostas** (1ª parcela/
   CCB aguardando emissão), com filtro por tipo.
+- **Visão planilha** (`/planilha`) e exportação CSV no formato do controle
+  operacional: Data Ação, CIA, Tipo, Segurado, Ramo, Forma Pagto, Vencimento,
+  Parcela, Vigência Ajustada, Ação, Produtor, Novo Venc., Data Limite e Status.
 - Workflow: Detectada → Em análise → Avisada → Regularizada / Vencida / Descartada.
 - Status de saúde da coleta por seguradora — falha nunca vira “sem pendências”.
 - Novas seguradoras entram como **plugins**, sem alterar o núcleo.

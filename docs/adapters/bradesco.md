@@ -127,7 +127,8 @@ na captura; validar se filtros de data/paginação são enviados em outros fluxo
 | `premio` | `amount` |
 | `vencimento` | `due_date` |
 | `dataLimite` | `deadline` |
-| `vigAjustada` | vigência ajustada |
+| `vigAjustada` | `adjusted_vigency` |
+| `pagamento` | `payment_method` |
 | `parcSistemaCobranca` + `dvParcSistemaCobranca` | boleto |
 | `criticidade` | alerta de crítica |
 | `sinistro` | alerta de sinistro |
@@ -227,7 +228,12 @@ uv run python -m corretor.cli collect bradesco
 ```
 
 O teste retornou **1 parcela em atraso + 1 proposta pendente**, ambas com
-`kind` distinto no banco.
+`kind` distinto no banco. A parcela veio com forma de pagamento
+`Débito` e vigência ajustada; a proposta veio com `Boleto`, vigência
+`22/10/2026 a 22/10/2027` e status de portal `Processando nova chance`.
+
+A visão `/planilha` e o `export-planilha.csv` já expõem essas colunas no
+formato do controle operacional.
 
 ## Próximo passo
 

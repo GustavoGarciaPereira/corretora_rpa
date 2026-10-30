@@ -314,8 +314,8 @@ Regras obrigatórias:
 | `insurers` | `id`, `slug` UNIQUE, `name`, `adapter`, `active`, `last_run_at`, `last_success_at` |
 | `collection_runs` | `id`, `insurer_id`, `status`, `started_at`, `finished_at`, `items_found`, `new_count`, `resolved_count`, `error`, `evidence_path` |
 | `policies` | `id`, `insurer_id`, `kind`, `policy_number`, `insured_name`, `branch`, `producer`; UNIQUE (`insurer_id`, `kind`, `policy_number`) |
-| `installments` | `id`, `policy_id`, `number`, `due_date`, `amount_cents`, `boleto_url`, `boleto_code`, `external_id`, `alerts`, `is_active`, `first_seen_at`, `last_seen_at`; UNIQUE (`policy_id`, `number`, `due_date`) |
-| `pendencies` | `id`, `installment_id` UNIQUE, `workflow_status`, `action`, `new_due_date`, `deadline`, `assigned_to`, `notes`, timestamps |
+| `installments` | `id`, `policy_id`, `number`, `due_date`, `amount_cents`, `boleto_url`, `boleto_code`, `external_id`, `alerts`, `payment_method`, `adjusted_vigency`, `insurer_status`, `is_active`, `first_seen_at`, `last_seen_at`; UNIQUE (`policy_id`, `number`, `due_date`) |
+| `pendencies` | `id`, `installment_id` UNIQUE, `workflow_status`, `action`, `action_date`, `new_due_date`, `deadline`, `assigned_to`, `notes`, timestamps |
 | `pendency_events` | `id`, `pendency_id`, `from_status`, `to_status`, `note`, `created_at` (auditoria) |
 
 Convenções:
@@ -334,6 +334,12 @@ Convenções:
   `installment_number`, `due_date`). Uma proposta e uma apólice com o mesmo
   número não colidem.
 - O painel deve exibir o tipo e permitir filtrar por ele.
+- O status exibido na visão planilha é derivado: abertos → `PENDENTE`;
+  regularizada → `REGULARIZADA`; vencida → `VENCIDA`; descartada → `DESCARTADA`.
+- A **visão planilha** (`/planilha`) e o `export-planilha.csv` devem manter as
+  colunas operacionais: DATA AÇÃO, CIA, TIPO, SEGURADO, RAMO, FORMA PAGTO,
+  VENCIMENTO, PARCELA PENDENTE, VIGENCIA AJUSTADA, AÇÃO, PRODUTOR, NOVO VENC,
+  DATA LIMITE, STATUS.
 
 ### Status do workflow
 

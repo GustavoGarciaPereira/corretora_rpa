@@ -29,8 +29,9 @@
 * Painel consolidado com seguradora, tipo, segurado, apólice/proposta, ramo, número da parcela, vencimento, valor, produtor e status.
 * Destaque de pendências novas, a vencer nos próximos 7 dias e vencidas.
 * Workflow de status: Detectada, Em análise, Avisada, Regularizada, Vencida e Descartada.
-* Registro de ação, novo vencimento, data limite, responsável, produtor e observações.
-* Filtros por seguradora, status, segurado, apólice e produtor; busca textual.
+* Registro de data da ação, ação, novo vencimento, data limite, responsável, produtor e observações.
+* Visão **Planilha** e exportação CSV no formato do controle operacional, com DATA AÇÃO, CIA, TIPO, SEGURADO, RAMO, FORMA PAGTO, VENCIMENTO, PARCELA PENDENTE, VIGENCIA AJUSTADA, AÇÃO, PRODUTOR, NOVO VENC, DATA LIMITE e STATUS.
+* Filtros por seguradora, tipo, status, segurado, apólice e produtor; busca textual.
 * Resumo com total de pendências abertas, a vencer, vencidas e seguradoras com falha de coleta.
 * Histórico de alterações de status e de campos de tratamento.
 * Status de saúde da coleta por seguradora: última execução, último sucesso e indicação de dados desatualizados.
@@ -56,7 +57,8 @@
 
 * **Definição de parcela pendente:** parcela de apólice já emitida que o portal apresenta como em aberto/não paga; parcelas quitadas não entram no controle.
 * **Definição de proposta pendente:** proposta aguardando emissão, com 1ª parcela (CCB) pendente. Não deve ser confundida com parcela de apólice emitida; o painel precisa exibir o tipo.
-* **Identidade única:** seguradora + apólice + número da parcela + vencimento. Reexecuções não podem duplicar pendências, históricos ou alertas.
+* **Identidade única:** seguradora + tipo + apólice/proposta + número da parcela + vencimento. Reexecuções não podem duplicar pendências, históricos ou alertas.
+* **Status da planilha:** pendências abertas aparecem como `PENDENTE`; regularizadas como `REGULARIZADA`; vencidas como `VENCIDA`; descartadas como `DESCARTADA`.
 * **Frequência:** coleta automática em dias úteis, no fuso America/Sao_Paulo, com possibilidade de execução manual.
 * **Regularização automática:** uma parcela só pode ser marcada como Regularizada por ausência quando a coleta da seguradora terminar com sucesso. Em caso de falha, os status anteriores são preservados.
 * **Reaparecimento:** se uma parcela regularizada reaparecer em coleta posterior, ela deve ser reaberta como Detectada e sinalizada para o operador.
