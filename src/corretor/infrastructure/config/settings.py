@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     plugin_paths: str = ""
 
     bradesco_state_path: Path = BASE_DIR / "data" / "sessions" / "bradesco.json"
+    bradesco_login_url: str = (
+        "https://wwwn.bradescoseguros.com.br/pnegocios2/wps/portal/portaldenegociosnovo/"
+    )
+    session_renewal_enabled: bool = True
+    session_renewal_timeout_s: int = 600
     bradesco_endpoint: str = (
         "https://wwwn.bradescoseguros.com.br/pnegocios/wps/"
         "PA_BSPN-DBoardAuto-PU/api/parcelas/v1/list"

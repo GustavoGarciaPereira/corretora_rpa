@@ -19,6 +19,7 @@ from .config import Settings
 from .evidence import FileEvidenceStore
 from .persistence import Database, SqlAlchemyStore
 from .plugins import PluginRegistry
+from .renewal import SessionRenewalManager
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class Container:
             plugin_dirs,
             context=PluginContext(settings=settings.bradesco_context),
         )
+        self.renewal = SessionRenewalManager(settings)
         self._scheduler: BackgroundScheduler | None = None
 
     def init_db(self) -> None:

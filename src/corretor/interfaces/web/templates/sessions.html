@@ -39,13 +39,17 @@
       </div>
       <code>{{ bradesco_state_path }}</code>
     </div>
-    <p class="small"><strong>Renovar:</strong></p>
-    <pre class="command">{{ renew_bradesco }}</pre>
-    <p class="muted small">
-      Faça o login manual, navegue até AUTO/Propostas Pendentes e clique em
-      Resume no Playwright Inspector. Depois copie o novo
-      <code>state.json</code> para o caminho acima.
-    </p>
+    {% set slug = 'bradesco' %}
+    {% include "partials/renewal_status.html" %}
+    <details>
+      <summary class="small muted">Comando manual (fallback)</summary>
+      <pre class="command">{{ renew_bradesco }}</pre>
+      <p class="muted small">
+        Faça o login manual, navegue até AUTO/Propostas Pendentes e clique em
+        Resume no Playwright Inspector. Depois copie o novo
+        <code>state.json</code> para o caminho acima.
+      </p>
+    </details>
     {% else %}
     <p class="muted small">
       Este portal ainda não possui fluxo de renovação assistida configurado.

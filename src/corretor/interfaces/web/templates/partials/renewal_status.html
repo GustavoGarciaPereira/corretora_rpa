@@ -1,0 +1,41 @@
+{% set status = renewal.status %}
+<div id="renewal-status"
+     {% if status == 'running' %}
+     hx-get="/sessions/{{ slug }}/renew/status"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML"
+     {% endif %}>
+  {% if status == 'running' %}
+  <div class="flash warning">
+    <strong>Navegador aberto.</strong>
+    Faça o login manual no portal. A sessão será salva automaticamente quando
+    a área logada aparecer.
+  </div>
+  <p class="muted small">Aguardando login… esta tela atualiza sozinha.</p>
+  {% elif status == 'success' %}
+  <div class="flash success">
+    <strong>Sessão renovada.</strong> {{ renewal.message }}
+  </div>
+  <a class="btn primary" href="/">Ir ao painel e coletar</a>
+  {% elif status == 'error' %}
+  <div class="flash error">{{ renewal.message }}</div>
+  <form hx-post="/sessions/{{ slug }}/renew"
+        hx-target="#renewal-status" hx-swap="outerHTML">
+    <button class="btn primary" type="submit">Tentar novamente</button>
+  </form>
+  {% elif status == 'disabled' %}
+  <div class="flash warning">{{ renewal.message }}</div>
+  {% else %}
+  {% if renewal_enabled %}
+  <form hx-post="/sessions/{{ slug }}/renew"
+        hx-target="#renewal-status" hx-swap="outerHTML">
+    <button class="btn primary" type="submit">Renovar sessão agora</button>
+  </form>
+  <p class="muted small">
+    O navegador abre nesta máquina. O login é manual por causa do reCAPTCHA.
+  </p>
+  {% else %}
+  <div class="flash warning">{{ renewal.message }}</div>
+  {% endif %}
+  {% endif %}
+</div>
