@@ -390,9 +390,12 @@ DETECTADA → EM_ANALISE → AVISADA → REGULARIZADA
 - Página de detalhe da pendência com formulário completo e histórico de eventos.
 - Exportação CSV com os filtros atuais.
 - Página `/plugins` lista plugins carregados, versões, status e erros.
-- Página `/sessions` lista o status da sessão por portal e o comando de
-  renovação assistida. Falha de sessão no `POST /collect` abre um aviso com os
-  portais afetados e link para `/sessions`.
+- Página `/sessions` lista o status da sessão por portal e permite renovar:
+  o botão abre o navegador, espera o login manual, salva o `state.json`
+  automaticamente e faz polling do resultado. Falha de sessão no `POST
+  /collect` abre um aviso com os portais afetados e link para `/sessions`.
+  O endpoint de renovação abre um navegador na máquina do servidor; não expor
+  a aplicação publicamente sem autenticação.
 - Acessibilidade básica: labels associados, foco visível, contraste, tabela
   semântica.
 - Sem framework de frontend/build step. CSS próprio e enxuto.
@@ -438,6 +441,11 @@ API Bradesco: `BRADESCO_MODE` (`auto|api|html`), `BRADESCO_API_BASE_URL`,
 `BRADESCO_API_TOKEN_EXTRA`, `BRADESCO_API_CERT_PATH`,
 `BRADESCO_API_KEY_PATH`, `BRADESCO_API_CA_BUNDLE`, `BRADESCO_API_VERIFY_TLS`,
 `BRADESCO_API_TIMEOUT_MS`. Segredos vêm de cofre/keyring, nunca do repositório.
+
+Renovação assistida: `BRADESCO_LOGIN_URL`, `SESSION_RENEWAL_ENABLED`,
+`SESSION_RENEWAL_TIMEOUT_S`. O botão web usa `tools/renew_bradesco.py`; em
+servidor sem `DISPLAY` é necessário noVNC/agente local. Não expor o endpoint de
+renovação sem autenticação.
 
 ## 10. Convenções de código
 

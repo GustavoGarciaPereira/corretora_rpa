@@ -243,6 +243,21 @@ BRADESCO_COLLECT_PARCELAS=true uv run python -m corretor.cli collect bradesco
 A visão `/planilha` e o `export-planilha.csv` expõem essas colunas no formato
 do controle operacional.
 
+## Renovação assistida pela web
+
+A página `/sessions` tem o botão **Renovar sessão agora**:
+
+1. o backend executa `tools/renew_bradesco.py`;
+2. o Chrome abre na máquina do operador;
+3. o operador faz o login manual (reCAPTCHA/MFA);
+4. ao detectar a área logada, o script salva o `state.json` automaticamente;
+5. a página faz polling e mostra “Sessão renovada”;
+6. o operador volta ao painel e clica em “Coletar agora”.
+
+O script não lê senha, não contorna captcha e não sobrescreve a sessão se o
+login não for concluído. Em servidor sem `DISPLAY`, usar noVNC ou agente local.
+Não expor a aplicação publicamente sem autenticação.
+
 ## Próximo passo
 
 1. Solicitar à Bradesco as credenciais da **API oficial de Propostas

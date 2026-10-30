@@ -2,8 +2,9 @@
 
 > **Status em 2026-10-30:** fase 0 concluída; plugin Bradesco com **adapter da
 > API oficial** de Propostas Pendentes (OAuth2/JWT) pronto, mas onboarding em
-> standby. A operação usa fallback HTML com sessão assistida e a página
-> `/sessions`. “Parcelas em Atraso” está pronto, mas desativado por flag.
+> standby. A operação usa fallback HTML com sessão assistida; a página
+> `/sessions` abre o navegador, espera o login manual e salva o `state.json`
+> automaticamente. “Parcelas em Atraso” está pronto, mas desativado por flag.
 > Próximo marco: adapter Allianz e retomada do onboarding da API.
 
 ## Princípios

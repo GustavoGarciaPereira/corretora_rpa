@@ -8,7 +8,8 @@ portais.
 > adapter demo, CLI e testes verdes. O plugin **Bradesco** coleta **Propostas
 > Pendentes**. A **API oficial** (OAuth2/JWT) está implementada, mas o onboarding
 > comercial está em **standby**; a operação atual usa o fallback HTML com sessão
-> assistida. A página `/sessions` mostra o status e como renovar. **Parcelas em
+> assistida. A página `/sessions` mostra o status e permite **renovar a sessão
+> pelo navegador**, salvando o `state.json` automaticamente. **Parcelas em
 > Atraso** está implementado, mas desativado por flag; falta o adapter Allianz.
 
 ## Documentos
@@ -37,8 +38,10 @@ comissão.
 - **Visão planilha** (`/planilha`) e exportação CSV no formato do controle
   operacional: Data Ação, CIA, Tipo, Segurado, Ramo, Forma Pagto, Vencimento,
   Parcela, Vigência Ajustada, Ação, Produtor, Novo Venc., Data Limite e Status.
-- **Sessões** (`/sessions`) com status por portal e renovação assistida; se a
-  coleta falhar por sessão expirada, o painel abre um aviso com os portais.
+- **Sessões** (`/sessions`) com status por portal e botão **Renovar sessão
+  agora**: abre o navegador, espera o login manual, salva o `state.json` e
+  atualiza o status. Se a coleta falhar por sessão expirada, o painel abre um
+  aviso com os portais afetados.
 - Workflow: Detectada → Em análise → Avisada → Regularizada / Vencida / Descartada.
 - Status de saúde da coleta por seguradora — falha nunca vira “sem pendências”.
 - Novas seguradoras entram como **plugins**, sem alterar o núcleo.
@@ -224,9 +227,13 @@ uv run ruff check . && uv run ruff format --check .
 `BRADESCO_API_SECRET_SOURCE`, `BRADESCO_API_KEYRING_SERVICE`,
 `BRADESCO_API_KEYRING_USERNAME`, `BRADESCO_API_CNPJ_PROVEDOR`,
 `BRADESCO_API_CPF_CNPJ_CORRETOR`, `BRADESCO_API_TOKEN_EXTRA`,
-`BRADESCO_API_CERT_PATH`, `BRADESCO_API_KEY_PATH`, `BRADESCO_API_CA_BUNDLE`.
+`BRADESCO_API_CERT_PATH`, `BRADESCO_API_KEY_PATH`, `BRADESCO_API_CA_BUNDLE`, `BRADESCO_LOGIN_URL`,
+`SESSION_RENEWAL_ENABLED`, `SESSION_RENEWAL_TIMEOUT_S`.
 
 ## Segurança e LGPD
+
+> O botão de renovação abre um navegador na máquina onde o servidor roda. Não
+> exponha a aplicação publicamente (ngrok etc.) sem autenticação.
 
 - **Nunca** leia o arquivo `senha` nem copie credenciais de `links.txt` para o
   projeto.
