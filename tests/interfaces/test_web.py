@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from corretor.application.dto import PendencyFilters
-from corretor.domain.enums import WorkflowStatus
+from corretor.application.dto import CollectionOutcome, PendencyFilters
+from corretor.domain.enums import RunStatus, WorkflowStatus
 from corretor.interfaces.web.app import create_app
 
 
@@ -29,6 +29,11 @@ def test_painel_coleta_e_workflow(settings) -> None:
         runs = client.get("/runs")
         assert runs.status_code == 200
         assert "Execuções de coleta" in runs.text
+
+        sessions = client.get("/sessions")
+        assert sessions.status_code == 200
+        assert "Sessões dos portais" in sessions.text
+        assert "Seguradora Demo" in sessions.text
 
         health = client.get("/healthz")
         assert health.status_code == 200
@@ -87,3 +92,31 @@ def test_painel_coleta_e_workflow(settings) -> None:
         assert "PENDENTE" in planilha_csv.text
 
         assert client.get("/pendencies/999999").status_code == 404
+
+
+def test_modal_de_sessao_expirada(settings, monkeypatch) -> None:
+    app = create_app(settings)
+    with TestClient(app) as client:
+        app.state.container.seed_demo()
+
+        class FakeCollectionService:
+            def collect_all(self):
+                return [
+                    CollectionOutcome(
+                        insurer_slug="bradesco",
+                        insurer_name="Bradesco Seguros",
+                        status=RunStatus.NEEDS_ATTENTION,
+                        error="sessão do Bradesco expirada",
+                    )
+                ]
+
+        monkeypatch.setattr(
+            app.state.container,
+            "collection_service",
+            lambda store: FakeCollectionService(),
+        )
+        response = client.post("/collect")
+        assert response.status_code == 200
+        assert "Sessão expirada" in response.text
+        assert "Bradesco Seguros" in response.text
+        assert "Renovar sessão" in response.text
