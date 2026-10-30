@@ -11,6 +11,8 @@ def test_painel_coleta_e_workflow(settings) -> None:
     app = create_app(settings)
     with TestClient(app) as client:
         app.state.container.seed_demo()
+        with app.state.container.session() as store:
+            store.create_insurer("bradesco", "Bradesco Seguros", "bradesco")
 
         home = client.get("/")
         assert home.status_code == 200
@@ -34,6 +36,7 @@ def test_painel_coleta_e_workflow(settings) -> None:
         assert sessions.status_code == 200
         assert "Sessões dos portais" in sessions.text
         assert "Seguradora Demo" in sessions.text
+        assert "Renovar sessão agora" in sessions.text
 
         health = client.get("/healthz")
         assert health.status_code == 200
@@ -92,6 +95,27 @@ def test_painel_coleta_e_workflow(settings) -> None:
         assert "PENDENTE" in planilha_csv.text
 
         assert client.get("/pendencies/999999").status_code == 404
+
+
+def test_renovacao_mostra_status_de_espera(settings, monkeypatch) -> None:
+    from corretor.infrastructure.renewal import RenewalStatus
+
+    app = create_app(settings)
+    with TestClient(app) as client:
+        monkeypatch.setattr(
+            app.state.container.renewal,
+            "start",
+            lambda: RenewalStatus("running", "navegador aberto"),
+        )
+        monkeypatch.setattr(
+            app.state.container.renewal,
+            "status",
+            lambda: RenewalStatus("running", "navegador aberto"),
+        )
+        response = client.post("/sessions/bradesco/renew")
+        assert response.status_code == 200
+        assert "Navegador aberto" in response.text
+        assert "Aguardando login" in response.text
 
 
 def test_modal_de_sessao_expirada(settings, monkeypatch) -> None:
