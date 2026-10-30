@@ -6,8 +6,9 @@ portais.
 
 > **Status:** fase 0 concluída. Painel FastAPI + Jinja/HTMX, loader de plugins,
 > adapter demo, CLI e testes verdes. O plugin **Bradesco** coleta **Propostas
-> Pendentes**; há adapter para a **API oficial** (OAuth2/JWT), aguardando
-> credenciais/homologação, e fallback HTML com sessão manual. **Parcelas em
+> Pendentes**. A **API oficial** (OAuth2/JWT) está implementada, mas o onboarding
+> comercial está em **standby**; a operação atual usa o fallback HTML com sessão
+> assistida. A página `/sessions` mostra o status e como renovar. **Parcelas em
 > Atraso** está implementado, mas desativado por flag; falta o adapter Allianz.
 
 ## Documentos
@@ -36,6 +37,8 @@ comissão.
 - **Visão planilha** (`/planilha`) e exportação CSV no formato do controle
   operacional: Data Ação, CIA, Tipo, Segurado, Ramo, Forma Pagto, Vencimento,
   Parcela, Vigência Ajustada, Ação, Produtor, Novo Venc., Data Limite e Status.
+- **Sessões** (`/sessions`) com status por portal e renovação assistida; se a
+  coleta falhar por sessão expirada, o painel abre um aviso com os portais.
 - Workflow: Detectada → Em análise → Avisada → Regularizada / Vencida / Descartada.
 - Status de saúde da coleta por seguradora — falha nunca vira “sem pendências”.
 - Novas seguradoras entram como **plugins**, sem alterar o núcleo.
@@ -146,12 +149,13 @@ Detalhes em [`tools/README.md`](tools/README.md).
 
 Há dois caminhos:
 
-1. **API oficial (preferencial):** `POST /pendentes` com OAuth2/JWT, sem
-   navegador e sem captcha. Requer onboarding/credenciais da Bradesco. Detalhes
-   em [`docs/adapters/bradesco-api.md`](docs/adapters/bradesco-api.md).
-2. **Fallback HTML:** Propostas Pendentes via sessão salva do Playwright, mais
-   Parcelas em Atraso opcional (`BRADESCO_COLLECT_PARCELAS=true`). É o que está
-   ativo enquanto a API não é liberada.
+1. **API oficial:** `POST /pendentes` com OAuth2/JWT, sem navegador e sem
+   captcha. O adapter está pronto, mas o onboarding/credenciais da Bradesco
+   seguem em **standby** por burocracia comercial. Detalhes em
+   [`docs/adapters/bradesco-api.md`](docs/adapters/bradesco-api.md).
+2. **Fallback HTML (em uso):** Propostas Pendentes via sessão salva do
+   Playwright, mais Parcelas em Atraso opcional
+   (`BRADESCO_COLLECT_PARCELAS=true`). A renovação é assistida em `/sessions`.
 
 O modo é escolhido por `BRADESCO_MODE=auto|api|html`. Em `auto`, usa a API
 quando as credenciais estão configuradas; caso contrário, usa o HTML. Nenhuma
@@ -239,7 +243,7 @@ uv run ruff check . && uv run ruff format --check .
 | Fase | Entrega |
 |---|---|
 | 0 | **Concluída:** Clean Architecture + plugins + adapter demo + painel + CLI + testes |
-| 1 | **Bradesco Propostas:** API oficial implementada (aguardando credenciais) + fallback HTML; Parcelas em Atraso prontas atrás de flag; falta Allianz e receita declarativa |
+| 1 | **Bradesco Propostas:** API oficial implementada (onboarding em standby) + fallback HTML com `/sessions`; Parcelas em Atraso prontas atrás de flag; falta Allianz e receita declarativa |
 | 2 | Scheduler, watchdog, digest interno e workflow completo |
 | 3 | Porto, testes de mutação, fallback LLM, Postgres/Docker |
 | 4 | Integração com ERP/CRM via API/webhook idempotente |

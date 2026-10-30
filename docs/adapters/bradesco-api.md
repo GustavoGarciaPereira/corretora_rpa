@@ -1,7 +1,9 @@
 # Bradesco Seguros — API oficial (Propostas Pendentes)
 
-> **Status:** adapter implementado, aguardando credenciais/homologação da
-> Bradesco. O adapter HTML continua como fallback até a liberação.
+> **Status:** adapter implementado, mas o onboarding comercial da Bradesco está
+> em **standby** (burocracia de credenciais/certificados). A operação atual usa
+> o adapter HTML com sessão assistida; este caminho fica pronto para quando o
+> acesso for liberado.
 
 ## Por que API
 

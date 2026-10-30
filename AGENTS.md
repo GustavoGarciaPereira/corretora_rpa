@@ -15,8 +15,9 @@ integração com ERP/CRM ficam para fases posteriores.
 
 **Estado em 2026-10-30:** fase 0 concluída. Painel FastAPI + Jinja/HTMX,
 loader de plugins, adapter demo, CLI e testes verdes. O plugin Bradesco tem
-**adapter da API oficial** de Propostas Pendentes (OAuth2/JWT), aguardando
-credenciais/homologação, e **fallback HTML** com sessão manual. A coleta de
+**adapter da API oficial** de Propostas Pendentes (OAuth2/JWT), mas o onboarding
+comercial está em **standby**; a operação usa o **fallback HTML** com sessão
+assistida. A página `/sessions` mostra o status e como renovar. A coleta de
 **Parcelas em Atraso** está implementada, mas desativada por
 `BRADESCO_COLLECT_PARCELAS=false`; falta Allianz/receita declarativa.
 
@@ -389,6 +390,9 @@ DETECTADA → EM_ANALISE → AVISADA → REGULARIZADA
 - Página de detalhe da pendência com formulário completo e histórico de eventos.
 - Exportação CSV com os filtros atuais.
 - Página `/plugins` lista plugins carregados, versões, status e erros.
+- Página `/sessions` lista o status da sessão por portal e o comando de
+  renovação assistida. Falha de sessão no `POST /collect` abre um aviso com os
+  portais afetados e link para `/sessions`.
 - Acessibilidade básica: labels associados, foco visível, contraste, tabela
   semântica.
 - Sem framework de frontend/build step. CSS próprio e enxuto.
@@ -482,7 +486,7 @@ Uma entrega só termina quando:
 | Fase | Entrega |
 |---|---|
 | 0 | **Concluída:** Clean Architecture + loader de plugins + adapter demo + painel Jinja/HTMX + CLI + testes |
-| 1 | **Bradesco Propostas:** API oficial implementada (aguardando credenciais) + fallback HTML; Parcelas em Atraso prontas atrás de flag; falta Allianz e receita declarativa com fallbacks |
+| 1 | **Bradesco Propostas:** API oficial implementada (onboarding em standby) + fallback HTML com `/sessions`; Parcelas em Atraso prontas atrás de flag; falta Allianz e receita declarativa com fallbacks |
 | 2 | Scheduler diário, watchdog, digest interno, workflow completo e `/healthz` |
 | 3 | Porto, testes de mutação, fallback LLM, Postgres/Docker; Bradesco em produção assistida |
 | 4 | Integração com o sistema da corretora (API/webhook com idempotência) |
