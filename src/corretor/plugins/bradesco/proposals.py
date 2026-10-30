@@ -106,6 +106,9 @@ def map_proposal_row(row: Tag) -> RawInstallment:
 
     branch = _attr(row, "data-especialidade") or _attr(row, "data-ramo") or "Proposta"
     producer = _attr(row, "data-corretor") or _attr(row, "data-nome-corretor")
+    start = _attr(row, "data-data-inicio-vigencia")
+    end = _attr(row, "data-data-fim-vigencia")
+    adjusted_vigency = f"{start} a {end}" if start and end else (start or end)
 
     return RawInstallment(
         policy_number=_policy_number(row),
@@ -118,6 +121,9 @@ def map_proposal_row(row: Tag) -> RawInstallment:
         boleto_code=_attr(row, "data-codigo-boleto"),
         external_id=_attr(row, "data-proposta"),
         alerts=_alerts(row),
+        payment_method=_attr(row, "data-vencimento-forma-pagamento"),
+        adjusted_vigency=adjusted_vigency,
+        insurer_status=_attr(row, "data-vencimento-status"),
         kind=PendencyKind.PROPOSTA,
     )
 

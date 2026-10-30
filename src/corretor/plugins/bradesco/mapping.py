@@ -112,6 +112,8 @@ def map_parcela(parcela: dict[str, Any]) -> RawInstallment:
         external_id=_text(parcela.get("idParcela")),
         deadline=_parse_optional_date(parcela.get("dataLimite"), "dataLimite"),
         alerts="; ".join(alerts),
+        payment_method=_text(parcela.get("pagamento")),
+        adjusted_vigency=_text(parcela.get("vigAjustada")),
     )
 
 
