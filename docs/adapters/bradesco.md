@@ -40,7 +40,7 @@ O modal promocional pode reaparecer em novas sessões. O checkbox
 `#checkbox-view` (“Não quero mais visualizar esta mensagem”) grava a dispensa
 em cookie; usar apenas se a corretora quiser suprimir esse aviso de vez.
 
-## Caminho — Parcelas em Atraso (alvo principal)
+## Caminho — Parcelas em Atraso (implementado, desativado por padrão)
 
 1. Login manual.
 2. Home logada → **AUTO**.
@@ -149,7 +149,7 @@ na captura; validar se filtros de data/paginação são enviados em outros fluxo
 - Se o payload vier vazio com `sistemasDisponiveis=true`, é um vazio válido;
   registrar evidência mesmo assim.
 
-## Propostas Pendentes (implementado)
+## Propostas Pendentes (escopo atual)
 
 A tela **Propostas Pendentes** é outra funcionalidade: primeira parcela (CCB)
 aguardando pagamento para emissão da apólice. Não confundir com parcelas em
@@ -224,24 +224,32 @@ Teste real:
 ```bash
 cp data/discovery/bradesco/<timestamp>/state.json data/sessions/bradesco.json
 uv run python -m corretor.cli collect bradesco
+# [OK] Bradesco Seguros: Sucesso itens=1 novas=1 resolvidas=0
+```
+
+O teste padrão retorna **1 proposta pendente**. A proposta veio com
+`Boleto`, vigência `22/10/2026 a 22/10/2027` e status de portal
+`Processando nova chance`.
+
+Para incluir também as parcelas em atraso:
+
+```bash
+BRADESCO_COLLECT_PARCELAS=true uv run python -m corretor.cli collect bradesco
 # [OK] Bradesco Seguros: Sucesso itens=2 novas=2 resolvidas=0
 ```
 
-O teste retornou **1 parcela em atraso + 1 proposta pendente**, ambas com
-`kind` distinto no banco. A parcela veio com forma de pagamento
-`Débito` e vigência ajustada; a proposta veio com `Boleto`, vigência
-`22/10/2026 a 22/10/2027` e status de portal `Processando nova chance`.
-
-A visão `/planilha` e o `export-planilha.csv` já expõem essas colunas no
-formato do controle operacional.
+A visão `/planilha` e o `export-planilha.csv` expõem essas colunas no formato
+do controle operacional.
 
 ## Próximo passo
 
-1. Promover o manifest de `discovery` para `ready` após validação em produção
+1. Manter **Propostas Pendentes** como escopo atual; parcelas seguem atrás de
+   `BRADESCO_COLLECT_PARCELAS=true`.
+2. Promover o manifest de `discovery` para `ready` após validação em produção
    assistida.
-2. Implementar o fallback DOM/Playwright para renovação assistida da sessão.
-3. Adicionar testes de mutação do payload (campos ausentes, tipos trocados,
+3. Implementar o fallback DOM/Playwright para renovação assistida da sessão.
+4. Adicionar testes de mutação do payload (campos ausentes, tipos trocados,
    `situacaoSistemas=false`).
-4. Repetir a descoberta para Allianz/Porto usando o mesmo contrato.
+5. Repetir a descoberta para Allianz/Porto usando o mesmo contrato.
 
 **Nunca** registrar credenciais neste documento ou nos testes.

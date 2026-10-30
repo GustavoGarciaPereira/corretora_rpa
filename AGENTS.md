@@ -15,9 +15,10 @@ integração com ERP/CRM ficam para fases posteriores.
 
 **Estado em 2026-10-30:** fase 0 concluída. Painel FastAPI + Jinja/HTMX,
 loader de plugins, adapter demo, CLI e testes verdes. O plugin Bradesco coleta
-**Parcelas em Atraso** (JSON) e **Propostas Pendentes** (HTML), usando sessão
-manual salva; falta validar em produção e implementar Allianz/receita
-declarativa.
+**Propostas Pendentes** (HTML) por padrão, usando sessão manual salva. A coleta
+de **Parcelas em Atraso** (JSON) está implementada, mas desativada por
+`BRADESCO_COLLECT_PARCELAS=false`; falta validar em produção e implementar
+Allianz/receita declarativa.
 
 **Fora de escopo (não implementar sem pedido explícito):**
 
@@ -417,7 +418,8 @@ Configuração por ambiente (`.env`): `DATABASE_URL`, `EVIDENCE_DIR`,
 `ENABLE_SCHEDULER`, `SCHEDULER_HOUR`, `SCHEDULER_MINUTE`, `TIMEZONE`,
 `STALE_AFTER_HOURS`, `PLUGIN_PATHS`, `SEED_DEMO`, `LOG_LEVEL`,
 `BRADESCO_STATE_PATH`, `BRADESCO_ENDPOINT`, `BRADESCO_PROPOSALS_ENDPOINT`,
-`BRADESCO_COLLECT_PROPOSALS`, `BRADESCO_HEADLESS`, `BRADESCO_TIMEOUT_MS`.
+`BRADESCO_COLLECT_PARCELAS`, `BRADESCO_COLLECT_PROPOSALS`,
+`BRADESCO_HEADLESS`, `BRADESCO_TIMEOUT_MS`.
 
 ## 10. Convenções de código
 
@@ -466,7 +468,7 @@ Uma entrega só termina quando:
 | Fase | Entrega |
 |---|---|
 | 0 | **Concluída:** Clean Architecture + loader de plugins + adapter demo + painel Jinja/HTMX + CLI + testes |
-| 1 | **Bradesco concluído** (parcelas via JSON + propostas via HTML, sessão manual); falta Allianz e receita declarativa com fallbacks |
+| 1 | **Bradesco Propostas concluído** (HTML, sessão manual); Parcelas em Atraso prontas atrás de flag; falta Allianz e receita declarativa com fallbacks |
 | 2 | Scheduler diário, watchdog, digest interno, workflow completo e `/healthz` |
 | 3 | Porto, testes de mutação, fallback LLM, Postgres/Docker; Bradesco em produção assistida |
 | 4 | Integração com o sistema da corretora (API/webhook com idempotência) |

@@ -5,9 +5,10 @@ consolidado, workflow de tratamento e arquitetura plug-and-play para novos
 portais.
 
 > **Status:** fase 0 concluída. Painel FastAPI + Jinja/HTMX, loader de plugins,
-> adapter demo, CLI e testes verdes. O plugin **Bradesco** coleta **Parcelas em
-> Atraso** (JSON) e **Propostas Pendentes** (HTML) usando sessão manual salva;
-> falta validação em produção e o adapter Allianz.
+> adapter demo, CLI e testes verdes. O plugin **Bradesco** coleta **Propostas
+> Pendentes** (HTML) por padrão, usando sessão manual salva. **Parcelas em
+> Atraso** (JSON) está implementado, mas desativado por flag; falta validação em
+> produção e o adapter Allianz.
 
 ## Documentos
 
@@ -143,12 +144,12 @@ Detalhes em [`tools/README.md`](tools/README.md).
 
 ## Bradesco (plugin JSON)
 
-O plugin `bradesco` usa dois endpoints, com a mesma sessão autenticada:
+O plugin `bradesco` usa a mesma sessão autenticada para dois endpoints:
 
-- **Parcelas em Atraso:** `/pnegocios/wps/PA_BSPN-DBoardAuto-PU/api/parcelas/v1/list`
-  (JSON);
-- **Propostas Pendentes:** `/pnegocios/wps/PA_BSPN-DBoardAuto-PU/api/propostas/pendentes/v1/view`
-  (fragmento HTML).
+- **Propostas Pendentes (padrão):** `/pnegocios/wps/PA_BSPN-DBoardAuto-PU/api/propostas/pendentes/v1/view`
+  (fragmento HTML);
+- **Parcelas em Atraso (opcional):** `/pnegocios/wps/PA_BSPN-DBoardAuto-PU/api/parcelas/v1/list`
+  (JSON), habilitado com `BRADESCO_COLLECT_PARCELAS=true`.
 
 Ele reutiliza uma sessão autenticada salva pelo Playwright — **nenhuma senha
 fica no projeto**.
@@ -229,7 +230,7 @@ uv run ruff check . && uv run ruff format --check .
 | Fase | Entrega |
 |---|---|
 | 0 | **Concluída:** Clean Architecture + plugins + adapter demo + painel + CLI + testes |
-| 1 | **Bradesco concluído** (parcelas via JSON + propostas via HTML, sessão manual); falta Allianz e receita declarativa |
+| 1 | **Bradesco Propostas concluído** (HTML, sessão manual); Parcelas em Atraso prontas atrás de flag; falta Allianz e receita declarativa |
 | 2 | Scheduler, watchdog, digest interno e workflow completo |
 | 3 | Porto, testes de mutação, fallback LLM, Postgres/Docker |
 | 4 | Integração com ERP/CRM via API/webhook idempotente |
