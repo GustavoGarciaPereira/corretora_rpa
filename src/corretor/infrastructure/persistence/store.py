@@ -539,6 +539,7 @@ class SqlAlchemyStore:
                     or_(
                         InsurerModel.last_success_at.is_(None),
                         InsurerModel.last_success_at < stale_before,
+                        InsurerModel.last_run_at > InsurerModel.last_success_at,
                     ),
                 )
             )

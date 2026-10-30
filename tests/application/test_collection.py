@@ -100,6 +100,7 @@ def test_falha_nao_apaga_dados_e_registra_run(container, store) -> None:
     views = store.list_pendencies(PendencyFilters(), today)
     assert len(views) == 1
     assert views[0].workflow_status is WorkflowStatus.DETECTADA
+    assert store.summary(today, container.stale_before()).failed_insurers == 1
 
 
 def test_collect_all_com_plugin_demo_real(container, store) -> None:
