@@ -91,6 +91,28 @@ Saída em `data/discovery/bradesco/<timestamp>/`:
 A sessão pode expirar; nesse caso o script avisa e é necessário fazer login
 manual novamente. O script não automatiza captcha.
 
+## `renew_bradesco.py`
+
+Renovação assistida usada pelo botão **Renovar sessão agora** em `/sessions`.
+Abre o navegador visível, espera o login manual e salva o `state.json`
+automaticamente quando a área logada aparece.
+
+```bash
+uv run python tools/renew_bradesco.py \
+  --state data/sessions/bradesco.json \
+  --result data/sessions/bradesco-renewal.json \
+  --url "https://wwwn.bradescoseguros.com.br/pnegocios2/wps/portal/portaldenegociosnovo/" \
+  --timeout 600
+```
+
+O script não lê senha, não automatiza captcha/MFA e não sobrescreve o estado
+se o login não for concluído. A página `/sessions` faz polling do resultado e
+mostra “Sessão renovada” quando termina.
+
+> Em servidor sem `DISPLAY`, a renovação precisa de navegador remoto (noVNC) ou
+> de um agente local. A aplicação deve ficar atrás de autenticação antes de ser
+> exposta publicamente, pois o botão abre um navegador na máquina do servidor.
+
 ### Depois da descoberta
 
 Preencha `docs/adapters/<slug>.md` com:
