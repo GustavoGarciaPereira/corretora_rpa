@@ -58,7 +58,7 @@ def export_csv(
                 row.branch,
                 row.installment_number,
                 row.due_date.strftime("%d/%m/%Y"),
-                f"{row.amount_cents / 100:.2f}".replace(".", ","),
+                f"{row.amount_cents / 100:.2f}".replace(".", ",") if row.amount_cents else "",
                 row.workflow_status.label,
                 row.producer,
                 row.action,

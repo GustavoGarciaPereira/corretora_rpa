@@ -21,7 +21,9 @@
       <div><span class="badge warn">em {{ p.days_until_due }}d</span></div>
     {% endif %}
   </td>
-  <td>{{ p.amount_cents|brl }}</td>
+  <td>
+    {% if p.amount_cents %}{{ p.amount_cents|brl }}{% else %}<span class="muted">—</span>{% endif %}
+  </td>
   <td>
     <select class="status-select status-{{ p.workflow_status.css_class }}"
             name="workflow_status"

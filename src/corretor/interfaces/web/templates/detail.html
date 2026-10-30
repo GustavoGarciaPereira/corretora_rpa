@@ -31,7 +31,7 @@
       <div><span>Ramo</span><strong>{{ p.branch }}</strong></div>
       <div><span>Parcela</span><strong>{{ p.installment_number }}</strong></div>
       <div><span>Vencimento</span><strong>{{ p.due_date|datebr }}</strong></div>
-      <div><span>Valor</span><strong>{{ p.amount_cents|brl }}</strong></div>
+      <div><span>Valor</span><strong>{% if p.amount_cents %}{{ p.amount_cents|brl }}{% else %}—{% endif %}</strong></div>
       <div><span>Produtor</span><strong>{{ p.producer or "—" }}</strong></div>
       <div><span>Forma de pagamento</span><strong>{{ p.payment_method or "—" }}</strong></div>
       <div><span>Vigência ajustada</span><strong>{{ p.adjusted_vigency or "—" }}</strong></div>
