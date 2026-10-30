@@ -163,6 +163,16 @@ p {
   border-color: var(--brand-dark);
 }
 
+.btn.danger {
+  border-color: #fda29b;
+  color: var(--danger);
+}
+
+.btn.danger:hover {
+  background: #fff1f0;
+  border-color: var(--danger);
+}
+
 .btn:disabled {
   cursor: wait;
   opacity: 0.7;

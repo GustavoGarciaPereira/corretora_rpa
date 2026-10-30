@@ -143,6 +143,13 @@ class SessionRenewalManager:
             and credentials_available(self.settings)
         )
 
+    def force_expire(self) -> bool:
+        """Invalida a sessão salva para simular a expiração no portal."""
+        existed = self.settings.bradesco_state_path.exists()
+        self.settings.bradesco_state_path.unlink(missing_ok=True)
+        self.result_path.unlink(missing_ok=True)
+        return existed
+
     def wait(self, timeout: float | None = None) -> RenewalStatus:
         deadline = time.monotonic() + (
             timeout if timeout is not None else self.settings.bradesco_auto_login_timeout_s + 15

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from corretor.domain.enums import FAILED_RUN_STATUSES, RunStatus
@@ -33,14 +33,18 @@ def _state(item) -> tuple[str, str]:
 @router.get("/sessions", response_class=HTMLResponse)
 def sessions(
     request: Request,
+    expired: bool = False,
     store: SqlAlchemyStore = Depends(get_store),
     container: Container = Depends(get_container),
     templates: Jinja2Templates = Depends(get_templates),
 ):
     health = store.list_insurer_health(container.stale_before())
+    state_exists = container.settings.bradesco_state_path.exists()
     rows = []
     for item in health:
         label, badge = _state(item)
+        if item.slug == "bradesco" and not state_exists:
+            label, badge = "expirada", "danger"
         rows.append({"health": item, "label": label, "badge": badge})
 
     return templates.TemplateResponse(
@@ -49,7 +53,8 @@ def sessions(
         context={
             "request": request,
             "rows": rows,
-            "bradesco_state_exists": container.settings.bradesco_state_path.exists(),
+            "expired": expired,
+            "bradesco_state_exists": state_exists,
             "bradesco_state_path": container.settings.bradesco_state_path,
             "renew_bradesco": RENEW_BRADESCO,
             "renewal": container.renewal.status(),
@@ -104,6 +109,17 @@ def auto_login_session(
         raise HTTPException(status_code=404, detail="Login automático não configurado")
     container.renewal.start(auto=True)
     return _renewal_response(request, templates, container, slug)
+
+
+@router.post("/sessions/{slug}/expire")
+def expire_session(
+    slug: str,
+    container: Container = Depends(get_container),
+):
+    if slug != "bradesco":
+        raise HTTPException(status_code=404, detail="Sessão não configurada")
+    container.renewal.force_expire()
+    return RedirectResponse(url="/sessions?expired=1", status_code=303)
 
 
 @router.get("/sessions/{slug}/renew/status", response_class=HTMLResponse)

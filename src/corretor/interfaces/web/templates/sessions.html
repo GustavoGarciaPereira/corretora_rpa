@@ -11,9 +11,16 @@
 </div>
 
 <div class="flash warning">
-  O login dos portais usa reCAPTCHA. A renovação é <strong>assistida</strong>:
-  o operador faz o login manual uma vez e o sistema reutiliza a sessão.
+  O sistema tenta renovar a sessão automaticamente com as credenciais do cofre.
+  Se o portal exigir reCAPTCHA/MFA, a renovação passa a ser manual.
 </div>
+
+{% if expired %}
+<div class="flash success">
+  Sessão forçada a expirar. O arquivo local foi removido; a próxima coleta
+  tentará o login automático.
+</div>
+{% endif %}
 
 <div class="plugin-grid">
   {% for row in rows %}
@@ -38,6 +45,17 @@
         <strong>{{ 'encontrado' if bradesco_state_exists else 'não encontrado' }}</strong>
       </div>
       <code>{{ bradesco_state_path }}</code>
+      {% if renewal.status != 'running' %}
+      <form method="post" action="/sessions/bradesco/expire"
+            onsubmit="return confirm('Remover a sessão salva do Bradesco?');">
+        <button class="btn danger" type="submit">
+          Forçar expiração da sessão
+        </button>
+      </form>
+      <span class="muted small">
+        Remove o <code>state.json</code> local para testar a renovação.
+      </span>
+      {% endif %}
     </div>
     {% set slug = 'bradesco' %}
     {% include "partials/renewal_status.html" %}
