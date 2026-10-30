@@ -33,7 +33,11 @@
       <div><span>Vencimento</span><strong>{{ p.due_date|datebr }}</strong></div>
       <div><span>Valor</span><strong>{{ p.amount_cents|brl }}</strong></div>
       <div><span>Produtor</span><strong>{{ p.producer or "—" }}</strong></div>
-      <div><span>Vigência/limite</span><strong>{{ p.deadline|datebr }}</strong></div>
+      <div><span>Forma de pagamento</span><strong>{{ p.payment_method or "—" }}</strong></div>
+      <div><span>Vigência ajustada</span><strong>{{ p.adjusted_vigency or "—" }}</strong></div>
+      <div><span>Status no portal</span><strong>{{ p.insurer_status or "—" }}</strong></div>
+      <div><span>Data da ação</span><strong>{{ p.action_date|datebr }}</strong></div>
+      <div><span>Data limite</span><strong>{{ p.deadline|datebr }}</strong></div>
       <div><span>Boleto</span><strong>
         {% if p.boleto_url %}<a href="{{ p.boleto_url }}" target="_blank" rel="noopener">abrir</a>
         {% else %}{{ p.boleto_code or "—" }}{% endif %}
@@ -63,6 +67,10 @@
       <div class="span-2">
         <label for="action">Ação</label>
         <input id="action" name="action" value="{{ p.action }}" placeholder="Ex.: enviar parcelas até dia 25">
+      </div>
+      <div>
+        <label for="action_date">Data da ação</label>
+        <input id="action_date" type="date" name="action_date" value="{{ p.action_date.isoformat() if p.action_date else '' }}">
       </div>
       <div>
         <label for="new_due_date">Novo vencimento</label>

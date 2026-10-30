@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Controle de parcelas · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Controle de parcelas pendentes</h1>
+    <p class="muted">Visão no formato da planilha operacional, com dados consolidados.</p>
+  </div>
+  <div class="actions">
+    <a class="btn primary" href="/">Ir para o painel</a>
+    <a class="btn" href="/export-planilha.csv?insurer={{ filters.insurer_slug }}&kind={{ filters.kind }}&status={{ filters.status }}&q={{ filters.q }}">Exportar planilha</a>
+  </div>
+</div>
+
+<form class="filters" method="get" action="/planilha">
+  <div>
+    <label for="insurer">CIA</label>
+    <select id="insurer" name="insurer">
+      <option value="">Todas</option>
+      {% for insurer in insurers %}
+      <option value="{{ insurer.slug }}" {% if filters.insurer_slug == insurer.slug %}selected{% endif %}>{{ insurer.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="kind">Tipo</label>
+    <select id="kind" name="kind">
+      <option value="" {% if not filters.kind %}selected{% endif %}>Todos</option>
+      {% for kind_option in kinds %}
+      <option value="{{ kind_option.value }}" {% if filters.kind == kind_option.value %}selected{% endif %}>{{ kind_option.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="status">Status</label>
+    <select id="status" name="status">
+      <option value="" {% if not filters.status %}selected{% endif %}>Todos</option>
+      <option value="ABERTAS" {% if filters.status == 'ABERTAS' %}selected{% endif %}>Abertas</option>
+      <option value="VENCIDAS" {% if filters.status == 'VENCIDAS' %}selected{% endif %}>Vencidas</option>
+      {% for status in statuses %}
+      <option value="{{ status.value }}" {% if filters.status == status.value %}selected{% endif %}>{{ status.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="search-field">
+    <label for="q">Buscar</label>
+    <input id="q" name="q" value="{{ filters.q }}" placeholder="Segurado, apólice ou seguradora">
+  </div>
+  <div class="filter-actions">
+    <button class="btn" type="submit">Filtrar</button>
+  </div>
+</form>
+
+<section class="panel">
+  <div class="panel-header">
+    <strong>Controle de parcelas pendentes</strong>
+    <span class="muted">{{ pendencies|length }} registro(s)</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data compact planilha-table">
+      <thead>
+        <tr>
+          <th>Data ação</th>
+          <th>CIA</th>
+          <th>Tipo</th>
+          <th>Segurado</th>
+          <th>Ramo</th>
+          <th>Forma pagto</th>
+          <th>Vencimento</th>
+          <th>Parcela pendente</th>
+          <th>Vigência ajustada</th>
+          <th>Ação</th>
+          <th>Produtor</th>
+          <th>Novo venc.</th>
+          <th>Data limite</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pendencies %}
+        <tr class="{% if p.is_overdue %}row-overdue{% endif %}">
+          <td>{{ p.action_date|datebr }}</td>
+          <td>{{ p.insurer_name }}</td>
+          <td><span class="badge kind-{{ p.kind.css_class }}">{{ p.kind.label }}</span></td>
+          <td>
+            <strong>{{ p.insured_name }}</strong>
+            <div class="muted small">{{ p.policy_number }}</div>
+          </td>
+          <td>{{ p.branch }}</td>
+          <td>{{ p.payment_method or "—" }}</td>
+          <td>{{ p.due_date|datebr }}</td>
+          <td>{{ p.installment_number }}</td>
+          <td>{{ p.adjusted_vigency or "—" }}</td>
+          <td>{{ p.action|short(40) if p.action else "—" }}</td>
+          <td>{{ p.producer or "—" }}</td>
+          <td>{{ p.new_due_date|datebr }}</td>
+          <td>{{ p.deadline|datebr }}</td>
+          <td><span class="badge planilha-{{ p.spreadsheet_status|lower }}">{{ p.spreadsheet_status }}</span></td>
+          <td class="row-actions"><a href="/pendencies/{{ p.id }}">Abrir</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="15" class="empty">Nenhum registro encontrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

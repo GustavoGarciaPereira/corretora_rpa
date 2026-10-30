@@ -454,6 +454,34 @@ tr.row-overdue:hover {
   color: #c11574;
 }
 
+.badge.planilha-pendente {
+  background: #fffaeb;
+  color: var(--warn);
+}
+
+.badge.planilha-vencida {
+  background: #fef3f2;
+  color: var(--danger);
+}
+
+.badge.planilha-regularizada {
+  background: #ecfdf3;
+  color: var(--ok);
+}
+
+.badge.planilha-descartada {
+  background: #f2f4f7;
+  color: var(--muted);
+}
+
+.planilha-table {
+  font-size: 0.8rem;
+}
+
+.planilha-table td {
+  white-space: nowrap;
+}
+
 .status-select {
   border-radius: 999px;
   font-size: 0.78rem;

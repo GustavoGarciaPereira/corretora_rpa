@@ -43,6 +43,7 @@ def update(
     pendency_id: int,
     workflow_status: str = Form(...),
     action: str = Form(""),
+    action_date: str = Form(""),
     new_due_date: str = Form(""),
     deadline: str = Form(""),
     assigned_to: str = Form(""),
@@ -53,6 +54,7 @@ def update(
     update_data = PendencyUpdate(
         workflow_status=parse_status(workflow_status),
         action=action.strip(),
+        action_date=parse_optional_date(action_date, "data da ação"),
         new_due_date=parse_optional_date(new_due_date, "novo vencimento"),
         deadline=parse_optional_date(deadline, "data limite"),
         assigned_to=assigned_to.strip(),
