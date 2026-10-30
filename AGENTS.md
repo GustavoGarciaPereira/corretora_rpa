@@ -17,8 +17,9 @@ integração com ERP/CRM ficam para fases posteriores.
 loader de plugins, adapter demo, CLI e testes verdes. O plugin Bradesco tem
 **adapter da API oficial** de Propostas Pendentes (OAuth2/JWT), mas o onboarding
 comercial está em **standby**; a operação usa o **fallback HTML** com sessão
-assistida. A página `/sessions` mostra o status e como renovar. A coleta de
-**Parcelas em Atraso** está implementada, mas desativada por
+assistida. A página `/sessions` permite renovação manual e **tentativa de login
+automático** com credenciais no keyring/Vault; se houver captcha/MFA, cai no
+manual. A coleta de **Parcelas em Atraso** está implementada, mas desativada por
 `BRADESCO_COLLECT_PARCELAS=false`; falta Allianz/receita declarativa.
 
 **Fora de escopo (não implementar sem pedido explícito):**
@@ -48,6 +49,9 @@ define **como** implementar com segurança.
 - **NUNCA abrir, ler, copiar ou imprimir o arquivo `senha`.**
 - **NUNCA** colocar credenciais de `links.txt` em código, templates, testes,
   logs, docs ou commits. `links.txt` contém login e usuário — é dado sensível.
+- Credenciais de login automático do portal só podem ficar no keyring/Vault.
+  Nunca em `.env` commitado, SQLite, argumentos de linha de comando ou logs.
+  Validar termos de uso antes de habilitar.
 - **NUNCA** commitar `.env`, banco, evidências ou dumps. Segredos vivem em
   variáveis de ambiente / cofre; no código, apenas referências.
 - A raiz do repositório Git é `/home/gustavo` (a home inteira). **Nunca** rodar
@@ -446,6 +450,16 @@ Renovação assistida: `BRADESCO_LOGIN_URL`, `SESSION_RENEWAL_ENABLED`,
 `SESSION_RENEWAL_TIMEOUT_S`. O botão web usa `tools/renew_bradesco.py`; em
 servidor sem `DISPLAY` é necessário noVNC/agente local. Não expor o endpoint de
 renovação sem autenticação.
+
+Login automático: `BRADESCO_AUTO_LOGIN_ENABLED`,
+`BRADESCO_CREDENTIAL_SOURCE` (`keyring|env`), `BRADESCO_KEYRING_SERVICE`,
+`BRADESCO_KEYRING_USERNAME`, `BRADESCO_LOGIN_USER`,
+`BRADESCO_LOGIN_PASSWORD`, `BRADESCO_AUTO_LOGIN_HEADLESS`,
+`BRADESCO_AUTO_LOGIN_TIMEOUT_S`. Credenciais do portal ficam no keyring/Vault
+(nunca em código, `.env` commitado ou logs). O worker
+`tools/auto_login_bradesco.py` tenta preencher o login; se houver
+captcha/MFA, retorna `captcha` e a UI oferece renovação manual. Não contornar
+captcha/MFA nem expor o endpoint publicamente sem autenticação.
 
 ## 10. Convenções de código
 

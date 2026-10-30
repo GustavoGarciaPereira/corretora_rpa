@@ -164,6 +164,28 @@ O modo é escolhido por `BRADESCO_MODE=auto|api|html`. Em `auto`, usa a API
 quando as credenciais estão configuradas; caso contrário, usa o HTML. Nenhuma
 senha do portal fica no projeto; o segredo da API deve vir do cofre/keyring.
 
+### Login automático em background
+
+Com as credenciais no cofre, a página `/sessions` mostra **Tentar login
+automático**:
+
+```bash
+uv run python -m corretor.cli credentials set bradesco
+```
+
+O comando pede o CPF/CNPJ e a senha (sem eco) e grava no **keyring** do sistema,
+nunca no `.env` ou no banco. O backend tenta preencher o formulário em
+background e, se conseguir, salva o `state.json` automaticamente.
+
+Se o Bradesco exigir **reCAPTCHA/MFA**, o sistema não contorna: marca o status
+`captcha` e oferece **Renovar manualmente**. Para Vault, use
+`BRADESCO_CREDENTIAL_SOURCE=env` e injete `BRADESCO_LOGIN_USER` /
+`BRADESCO_LOGIN_PASSWORD` no processo, sem commitar.
+
+> Validar os termos de uso e a política de segurança da corretora antes de
+> armazenar credenciais do portal. O método mais seguro continua sendo a API
+> oficial, quando liberada.
+
 ```bash
 # 1. gere a sessão com login manual
 uv run --python 3.12 --with playwright python tools/discover_portal.py --slug bradesco

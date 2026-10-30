@@ -258,6 +258,21 @@ O script não lê senha, não contorna captcha e não sobrescreve a sessão se o
 login não for concluído. Em servidor sem `DISPLAY`, usar noVNC ou agente local.
 Não expor a aplicação publicamente sem autenticação.
 
+### Login automático (tentativa)
+
+Se `BRADESCO_AUTO_LOGIN_ENABLED=true` e houver credenciais no cofre, a página
+`/sessions` mostra **Tentar login automático**. O backend executa
+`tools/auto_login_bradesco.py` em background, preenche CPF/CNPJ e senha e
+salva o `state.json` se a área logada aparecer.
+
+- Credenciais: keyring (`corretor credentials set bradesco`) ou
+  `BRADESCO_CREDENTIAL_SOURCE=env` com `BRADESCO_LOGIN_USER` /
+  `BRADESCO_LOGIN_PASSWORD` injetados por Vault.
+- Se o portal exigir reCAPTCHA/MFA, o worker retorna `captcha` e **não
+  contorna**; a UI oferece a renovação manual.
+- O worker não usa a senha em argumentos de linha de comando e não a grava em
+  logs. Validar os termos de uso antes de habilitar.
+
 ## Próximo passo
 
 1. Solicitar à Bradesco as credenciais da **API oficial de Propostas

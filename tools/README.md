@@ -113,6 +113,25 @@ mostra “Sessão renovada” quando termina.
 > de um agente local. A aplicação deve ficar atrás de autenticação antes de ser
 > exposta publicamente, pois o botão abre um navegador na máquina do servidor.
 
+## `auto_login_bradesco.py`
+
+Tentativa de login automático em background, usada pelo botão **Tentar login
+automático** em `/sessions`. Lê as credenciais do keyring/Vault, nunca de
+argumentos de linha de comando.
+
+```bash
+uv run python -m corretor.cli credentials set bradesco
+```
+
+O worker preenche CPF/CNPJ e senha, tenta entrar e salva o `state.json` em caso
+de sucesso. Se o portal exigir reCAPTCHA/MFA, retorna `captcha` e não contorna;
+a UI oferece a renovação manual. O mesmo vale para credenciais rejeitadas
+(`credentials`).
+
+A senha nunca é impressa, gravada em log ou passada por argumento. Para Vault,
+use `BRADESCO_CREDENTIAL_SOURCE=env` e injete `BRADESCO_LOGIN_USER` /
+`BRADESCO_LOGIN_PASSWORD` no processo.
+
 ### Depois da descoberta
 
 Preencha `docs/adapters/<slug>.md` com:
