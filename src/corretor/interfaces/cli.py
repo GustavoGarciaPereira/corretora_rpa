@@ -69,13 +69,14 @@ def _credentials(settings: Settings, action: str, portal: str) -> int:
                     "aviso: BRADESCO_CREDENTIAL_SOURCE não é 'keyring'; "
                     "o login automático usará as variáveis de ambiente."
                 )
-            user = input("CPF/CNPJ de login (CNPJ da corretora ou CPF): ").strip()
+            login = input("CNPJ/login da corretora (primeira página): ").strip()
+            user = input("CPF do usuário (segunda página; Enter para usar o CNPJ): ").strip()
             password = getpass.getpass("Senha do portal: ")
             confirmation = getpass.getpass("Confirme a senha: ")
             if password != confirmation:
                 print("as senhas não conferem")
                 return 1
-            store_bradesco_credentials(settings, user, password)
+            store_bradesco_credentials(settings, login, user or login, password)
             print("credenciais salvas no keyring")
             return 0
         if action == "status":

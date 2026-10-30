@@ -18,6 +18,7 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
+from corretor.infrastructure.bradesco_login import is_logged_in_page
 from corretor.infrastructure.config import Settings
 from corretor.infrastructure.credentials import (
     CredentialsError,
@@ -41,6 +42,11 @@ def write_result(
     temporary = result_path.with_suffix(result_path.suffix + ".tmp")
     temporary.write_text(json.dumps(document, ensure_ascii=False, indent=2), encoding="utf-8")
     os.replace(temporary, result_path)
+
+
+async def _visible(page, selector: str) -> bool:
+    element = page.locator(selector)
+    return bool(await element.count()) and await element.first.is_visible()
 
 
 async def _captcha_visible(page) -> bool:
@@ -108,17 +114,18 @@ async def auto_login(args: argparse.Namespace) -> int:
                 except Exception:  # noqa: BLE001
                     pass
 
-                await page.fill("#CpfCnpjTelaInicial", credentials.user)
+                # Primeira página: CNPJ/login da corretora.
+                await page.wait_for_selector("#CpfCnpjTelaInicial", state="visible", timeout=30_000)
+                await page.fill("#CpfCnpjTelaInicial", credentials.login)
                 continue_button = page.locator("#tag_Home_Login-Continuar")
                 if await continue_button.count() and await continue_button.is_visible():
                     await continue_button.click()
-                await page.wait_for_selector("#senha", state="visible", timeout=20_000)
-                await page.fill("#senha", credentials.password)
-                await page.click("#tag_Home_Login-entrar")
 
                 deadline = time.monotonic() + args.timeout
+                submitted_password = False
+                submitted_cpf = False
                 while time.monotonic() < deadline:
-                    if "arealogada" in page.url.lower():
+                    if await is_logged_in_page(page):
                         temporary = state_path.with_suffix(state_path.suffix + ".tmp")
                         await context.storage_state(path=str(temporary))
                         os.replace(temporary, state_path)
@@ -145,6 +152,24 @@ async def auto_login(args: argparse.Namespace) -> int:
                             started_at,
                         )
                         return 4
+
+                    # Segunda página: CPF do usuário + senha.
+                    if not submitted_cpf and await _visible(page, "#input_senha"):
+                        await page.fill("#input_cpf_cnpj", credentials.user)
+                        await page.fill("#input_senha", credentials.password)
+                        await page.click("#loginButton2")
+                        submitted_cpf = True
+                        await page.wait_for_timeout(1000)
+                        continue
+
+                    # Alguns perfis pedem a senha ainda na primeira página.
+                    if not submitted_password and await _visible(page, "#senha"):
+                        await page.fill("#senha", credentials.password)
+                        await page.click("#tag_Home_Login-entrar")
+                        submitted_password = True
+                        await page.wait_for_timeout(1000)
+                        continue
+
                     await page.wait_for_timeout(1000)
 
                 write_result(

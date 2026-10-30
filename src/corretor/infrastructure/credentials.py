@@ -14,7 +14,8 @@ class CredentialsError(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class LoginCredentials:
-    user: str
+    login: str  # CNPJ/login da corretora na primeira página
+    user: str  # CPF do usuário na segunda página
     password: str
 
 
@@ -28,16 +29,21 @@ def _keyring():
 
 def resolve_bradesco_credentials(settings: Settings) -> LoginCredentials:
     if settings.bradesco_credential_source == "env":
-        # A primeira página aceita CPF ou CNPJ. O CNPJ/login da corretora tem
-        # prioridade; o CPF do usuário fica como fallback.
-        user = settings.bradesco_login.strip() or settings.bradesco_login_user.strip()
+        # O portal tem duas etapas: CNPJ na primeira página e CPF na segunda.
+        # Cada variável alimenta sua etapa; se uma faltar, a outra é fallback.
+        login = settings.bradesco_login.strip()
+        user = settings.bradesco_login_user.strip()
         secret = settings.bradesco_login_password
         password = secret.get_secret_value() if isinstance(secret, SecretStr) else ""
-        if not user or not password:
+        if not (login or user) or not password:
             raise CredentialsError(
                 "BRADESCO_LOGIN/BRADESCO_LOGIN_USER e BRADESCO_LOGIN_PASSWORD não configurados"
             )
-        return LoginCredentials(user=user, password=password)
+        return LoginCredentials(
+            login=login or user,
+            user=user or login,
+            password=password,
+        )
 
     keyring = _keyring()
     try:
@@ -54,11 +60,16 @@ def resolve_bradesco_credentials(settings: Settings) -> LoginCredentials:
         data = json.loads(raw)
     except ValueError as exc:
         raise CredentialsError("credenciais inválidas no keyring") from exc
-    user = str(data.get("user", "")).strip()
-    password = str(data.get("password", ""))
-    if not user or not password:
+    login = str(data.get("login") or "").strip()
+    user = str(data.get("user") or "").strip()
+    password = str(data.get("password") or "")
+    if not (login or user) or not password:
         raise CredentialsError("credenciais incompletas no keyring")
-    return LoginCredentials(user=user, password=password)
+    return LoginCredentials(
+        login=login or user,
+        user=user or login,
+        password=password,
+    )
 
 
 def credentials_available(settings: Settings) -> bool:
@@ -69,14 +80,25 @@ def credentials_available(settings: Settings) -> bool:
         return False
 
 
-def store_bradesco_credentials(settings: Settings, user: str, password: str) -> None:
-    if not user.strip() or not password:
-        raise CredentialsError("usuário e senha são obrigatórios")
+def store_bradesco_credentials(
+    settings: Settings,
+    login: str,
+    user: str,
+    password: str,
+) -> None:
+    if not (login.strip() or user.strip()) or not password:
+        raise CredentialsError("CNPJ/CPF e senha são obrigatórios")
     keyring = _keyring()
     keyring.set_password(
         settings.bradesco_keyring_service,
         settings.bradesco_keyring_username,
-        json.dumps({"user": user.strip(), "password": password}),
+        json.dumps(
+            {
+                "login": login.strip(),
+                "user": user.strip(),
+                "password": password,
+            }
+        ),
     )
 
 
