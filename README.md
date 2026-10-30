@@ -92,6 +92,23 @@ docs/
 
 Nenhuma mudança em `domain`, `application` ou `infrastructure` é necessária.
 
+## Descoberta de portais (Playwright)
+
+Antes de implementar um adapter real, use o script de descoberta assistida.
+Ele abre o portal em um navegador visível, espera o **login manual** e captura
+URL final, frames, chamadas de rede, screenshot, HTML e trace.
+
+```bash
+uv run --python 3.12 --with playwright python tools/discover_portal.py --slug bradesco
+```
+
+- O script **não lê senha**, `links.txt` ou o arquivo `senha`.
+- As capturas vão para `data/discovery/<slug>/<timestamp>/`, que é ignorado
+  pelo Git.
+- Preencha `docs/adapters/<slug>.md` com o caminho e os endpoints observados.
+
+Detalhes em [`tools/README.md`](tools/README.md).
+
 ## Stack
 
 - Python 3.12 + `uv`
