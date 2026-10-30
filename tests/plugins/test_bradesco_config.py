@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import SecretStr
 
 from corretor.domain.entities import AdapterManifest, PluginContext
 from corretor.domain.errors import AdapterNotConfigured
 from corretor.plugins.bradesco.adapter import BradescoAdapter
+from corretor.plugins.bradesco.api_adapter import BradescoApiAdapter
+from corretor.plugins.bradesco.plugin import create_adapter
 
 
 def manifest() -> AdapterManifest:
@@ -30,3 +33,27 @@ def test_sem_parcelas_e_sem_propostas_falha_explicitamente() -> None:
     )
     with pytest.raises(AdapterNotConfigured, match="desativada"):
         adapter.fetch_pending()
+
+
+def test_modo_api_usa_adapter_oficial() -> None:
+    adapter = create_adapter(
+        manifest(),
+        PluginContext(
+            settings={
+                "bradesco_mode": "api",
+                "bradesco_api_client_id": "client",
+                "bradesco_api_client_secret": SecretStr("secret"),
+                "bradesco_api_cnpj_provedor": "12345678000195",
+                "bradesco_api_cpf_cnpj_corretor": "12345678901",
+            }
+        ),
+    )
+    assert isinstance(adapter, BradescoApiAdapter)
+
+
+def test_modo_html_forca_fallback() -> None:
+    adapter = create_adapter(
+        manifest(),
+        PluginContext(settings={"bradesco_mode": "html"}),
+    )
+    assert isinstance(adapter, BradescoAdapter)
