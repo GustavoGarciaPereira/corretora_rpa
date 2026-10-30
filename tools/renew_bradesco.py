@@ -19,6 +19,8 @@ from pathlib import Path
 
 from playwright.async_api import async_playwright
 
+from corretor.infrastructure.bradesco_login import is_logged_in_page
+
 
 def write_result(
     result_path: Path,
@@ -75,10 +77,10 @@ async def renew(args: argparse.Namespace) -> int:
             try:
                 await page.goto(args.url, wait_until="domcontentloaded", timeout=60_000)
                 deadline = time.monotonic() + args.timeout
-                logged_in = "arealogada" in page.url.lower()
+                logged_in = await is_logged_in_page(page)
                 while not logged_in and time.monotonic() < deadline:
                     await page.wait_for_timeout(1000)
-                    logged_in = "arealogada" in page.url.lower()
+                    logged_in = await is_logged_in_page(page)
 
                 if not logged_in:
                     write_result(
