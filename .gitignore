@@ -7,10 +7,11 @@ data/
 *.sqlite3
 *.log
 
-# Imagens locais com possíveis dados pessoais
+# Imagens e exportações locais com possíveis dados pessoais
 *.jpeg
 *.jpg
 *.png
+*.csv
 
 # Python
 .venv/
