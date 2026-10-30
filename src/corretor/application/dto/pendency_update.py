@@ -10,6 +10,7 @@ from corretor.domain.enums import WorkflowStatus
 class PendencyUpdate:
     workflow_status: WorkflowStatus
     action: str = ""
+    action_date: date | None = None
     new_due_date: date | None = None
     deadline: date | None = None
     assigned_to: str = ""

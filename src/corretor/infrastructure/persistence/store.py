@@ -80,6 +80,9 @@ def _installment(model: InstallmentModel) -> Installment:
         boleto_code=model.boleto_code,
         external_id=model.external_id,
         alerts=model.alerts,
+        payment_method=model.payment_method,
+        adjusted_vigency=model.adjusted_vigency,
+        insurer_status=model.insurer_status,
         is_active=model.is_active,
         first_seen_at=model.first_seen_at,
         last_seen_at=model.last_seen_at,
@@ -92,6 +95,7 @@ def _pendency(model: PendencyModel) -> Pendency:
         installment_id=model.installment_id,
         workflow_status=WorkflowStatus(model.workflow_status),
         action=model.action,
+        action_date=model.action_date,
         new_due_date=model.new_due_date,
         deadline=model.deadline,
         assigned_to=model.assigned_to,
@@ -151,8 +155,12 @@ def _view(
         boleto_code=installment.boleto_code,
         external_id=installment.external_id,
         alerts=installment.alerts,
+        payment_method=installment.payment_method,
+        adjusted_vigency=installment.adjusted_vigency,
+        insurer_status=installment.insurer_status,
         workflow_status=WorkflowStatus(pendency.workflow_status),
         action=pendency.action,
+        action_date=pendency.action_date,
         new_due_date=pendency.new_due_date,
         deadline=pendency.deadline,
         assigned_to=pendency.assigned_to,
@@ -329,6 +337,9 @@ class SqlAlchemyStore:
                 installment_model.boleto_code = item.boleto_code
                 installment_model.external_id = item.external_id
                 installment_model.alerts = item.alerts
+                installment_model.payment_method = item.payment_method
+                installment_model.adjusted_vigency = item.adjusted_vigency
+                installment_model.insurer_status = item.insurer_status
                 installment_model.is_active = True
                 installment_model.last_seen_at = collected_at
 
@@ -589,6 +600,7 @@ class SqlAlchemyStore:
             [
                 old_status is not update.workflow_status,
                 pendency.action != update.action,
+                pendency.action_date != update.action_date,
                 pendency.new_due_date != update.new_due_date,
                 pendency.deadline != update.deadline,
                 pendency.assigned_to != update.assigned_to,
@@ -597,6 +609,7 @@ class SqlAlchemyStore:
         )
         pendency.workflow_status = update.workflow_status.value
         pendency.action = update.action
+        pendency.action_date = update.action_date
         pendency.new_due_date = update.new_due_date
         pendency.deadline = update.deadline
         pendency.assigned_to = update.assigned_to

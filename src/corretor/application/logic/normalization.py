@@ -26,6 +26,9 @@ def normalize_items(raw_items: Iterable[RawInstallment]) -> list[RawInstallment]
         boleto_code = str(raw.boleto_code or "").strip()
         external_id = str(raw.external_id or "").strip()
         alerts = str(raw.alerts or "").strip()
+        payment_method = str(raw.payment_method or "").strip()
+        adjusted_vigency = str(raw.adjusted_vigency or "").strip()
+        insurer_status = str(raw.insurer_status or "").strip()
 
         if not policy_number:
             raise ValidationError("parcela sem número de apólice")
@@ -74,6 +77,9 @@ def normalize_items(raw_items: Iterable[RawInstallment]) -> list[RawInstallment]
                 external_id=external_id,
                 deadline=raw.deadline,
                 alerts=alerts,
+                payment_method=payment_method,
+                adjusted_vigency=adjusted_vigency,
+                insurer_status=insurer_status,
                 kind=kind,
             )
         )

@@ -24,8 +24,12 @@ class PendencyView:
     boleto_code: str
     external_id: str
     alerts: str
+    payment_method: str
+    adjusted_vigency: str
+    insurer_status: str
     workflow_status: WorkflowStatus
     action: str
+    action_date: date | None
     new_due_date: date | None
     deadline: date | None
     assigned_to: str
@@ -47,3 +51,13 @@ class PendencyView:
     @property
     def days_overdue(self) -> int:
         return max(0, -self.days_until_due)
+
+    @property
+    def spreadsheet_status(self) -> str:
+        if self.workflow_status is WorkflowStatus.VENCIDA:
+            return "VENCIDA"
+        if self.workflow_status is WorkflowStatus.REGULARIZADA:
+            return "REGULARIZADA"
+        if self.workflow_status is WorkflowStatus.DESCARTADA:
+            return "DESCARTADA"
+        return "PENDENTE"

@@ -24,6 +24,9 @@ class Installment:
     boleto_code: str = ""
     external_id: str = ""
     alerts: str = ""
+    payment_method: str = ""
+    adjusted_vigency: str = ""
+    insurer_status: str = ""
     is_active: bool = True
     first_seen_at: datetime | None = None
     last_seen_at: datetime | None = None

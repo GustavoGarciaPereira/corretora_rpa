@@ -26,6 +26,7 @@ class PendencyModel(Base):
         String(32), default=WorkflowStatus.DETECTADA.value, index=True
     )
     action: Mapped[str] = mapped_column(Text, default="")
+    action_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     new_due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     deadline: Mapped[date | None] = mapped_column(Date, nullable=True)
     assigned_to: Mapped[str] = mapped_column(String(120), default="")

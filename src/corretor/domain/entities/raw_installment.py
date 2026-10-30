@@ -20,4 +20,7 @@ class RawInstallment:
     external_id: str = ""
     deadline: date | None = None
     alerts: str = ""
+    payment_method: str = ""
+    adjusted_vigency: str = ""
+    insurer_status: str = ""
     kind: PendencyKind = PendencyKind.PARCELA
