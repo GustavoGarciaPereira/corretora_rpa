@@ -21,6 +21,7 @@ portais.
 | [`docs/PRD.md`](docs/PRD.md) | Fonte da verdade de produto: problema, escopo, regras, critérios de aceitação e UX |
 | [`docs/PLANO.md`](docs/PLANO.md) | Passo a passo de execução, estimativas e critérios de aceite por etapa |
 | [`AGENTS.md`](AGENTS.md) | Guia de engenharia: Clean Architecture, plugins, segurança e convenções |
+| [`docs/UX-REVIEW.md`](docs/UX-REVIEW.md) | Revisão de UX/UI e plano de melhorias para múltiplas seguradoras |
 
 ## O problema
 

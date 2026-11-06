@@ -539,7 +539,7 @@ Uma entrega só termina quando:
 - Algum portal exige MFA, certificado ou captcha?
 - Canal de alerta interno preferido (e-mail, WhatsApp, Telegram)?
 - Onde hospedar (IP fixo é importante; portais podem bloquear datacenter)?
-- Haverá mais de uma corretora (multi-tenant) ou apenas uma?
+- **Decidido (06/11/2026):** uma única corretora (single-tenant), com várias seguradoras. Operação multi-corretora fica fora do escopo.
 - Prazo de retenção de evidências e política de LGPD da corretora?
 
 ## 15. Não faça
