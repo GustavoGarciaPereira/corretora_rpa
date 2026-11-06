@@ -5,7 +5,7 @@ from datetime import date
 from fastapi import HTTPException, Request
 from fastapi.templating import Jinja2Templates
 
-from corretor.application.dto import PendencyFilters
+from corretor.application.dto import CollectionOutcome, PendencyFilters
 from corretor.domain.enums import PendencyKind, WorkflowStatus
 from corretor.infrastructure.container import Container
 from corretor.infrastructure.persistence import SqlAlchemyStore
@@ -37,6 +37,34 @@ def parse_optional_date(value: str, field: str = "data") -> date | None:
         raise HTTPException(status_code=400, detail=f"{field} inválida") from exc
 
 
+def _error_items(health, failures: list[CollectionOutcome] | None) -> list[dict]:
+    if failures is not None:
+        return [
+            {
+                "slug": outcome.insurer_slug,
+                "name": outcome.insurer_name,
+                "status": outcome.status,
+                "error": outcome.error or "Falha registrada sem mensagem de erro.",
+                "when": None,
+                "stale": False,
+            }
+            for outcome in failures
+            if not outcome.ok
+        ]
+    return [
+        {
+            "slug": item.slug,
+            "name": item.name,
+            "status": item.last_status,
+            "error": item.last_error or "Falha registrada sem mensagem de erro.",
+            "when": item.last_run_at,
+            "stale": item.is_stale,
+        }
+        for item in health
+        if item.is_failing
+    ]
+
+
 def dashboard_context(
     request: Request,
     store: SqlAlchemyStore,
@@ -44,6 +72,7 @@ def dashboard_context(
     filters: PendencyFilters,
     message: str = "",
     message_kind: str = "success",
+    failures: list[CollectionOutcome] | None = None,
 ) -> dict:
     today = container.clock.today()
     health = store.list_insurer_health(container.stale_before())
@@ -61,6 +90,7 @@ def dashboard_context(
         "today": today,
         "message": message,
         "message_kind": message_kind,
+        "error_items": _error_items(health, failures),
     }
 
 
@@ -75,9 +105,16 @@ def render_dashboard(
     message: str = "",
     message_kind: str = "success",
     attention: list | None = None,
+    failures: list[CollectionOutcome] | None = None,
 ):
     context = dashboard_context(
-        request, store, container, filters, message=message, message_kind=message_kind
+        request,
+        store,
+        container,
+        filters,
+        message=message,
+        message_kind=message_kind,
+        failures=failures,
     )
     context["attention"] = attention or []
     name = "partials/dashboard_content.html" if partial else "dashboard.html"

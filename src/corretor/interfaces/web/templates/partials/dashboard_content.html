@@ -5,7 +5,10 @@
     <p>Não foi possível coletar:</p>
     <ul>
       {% for outcome in attention %}
-      <li><strong>{{ outcome.insurer_name }}</strong> — {{ outcome.error|short(140) }}</li>
+      <li>
+        <strong>{{ outcome.insurer_name }}</strong>
+        <pre class="error-text">{{ outcome.error }}</pre>
+      </li>
       {% endfor %}
     </ul>
     <p class="muted">
@@ -25,14 +28,51 @@
 <div class="flash {{ message_kind }}">{{ message }}</div>
 {% endif %}
 
+{% if error_items %}
+<section class="panel error-panel" aria-labelledby="error-title">
+  <div class="panel-header">
+    <strong id="error-title">Falhas na coleta</strong>
+    <a href="/runs">ver execuções</a>
+  </div>
+  <div class="error-list">
+    {% for item in error_items %}
+    <article class="error-item">
+      <div class="error-head">
+        <strong>{{ item.name }}</strong>
+        {% if item.status %}
+        <span class="badge {{ item.status.css_class }}">{{ item.status.label }}</span>
+        {% endif %}
+        {% if item.stale %}
+        <span class="badge danger">dados desatualizados</span>
+        {% endif %}
+        {% if item.when %}
+        <span class="muted small">{{ item.when|datetimebr }}</span>
+        {% endif %}
+      </div>
+      <pre class="error-text">{{ item.error }}</pre>
+      {% if item.status and item.status.value == 'AGUARDANDO_INTERVENCAO' %}
+      <div class="actions">
+        <a class="btn primary" href="/sessions">Renovar sessão</a>
+      </div>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 {% include "partials/summary.html" %}
 
 {% if health %}
 <div class="insurer-strip">
   {% for item in health %}
-  <span class="pill {% if not item.active %}muted{% elif item.is_stale %}stale{% else %}ok{% endif %}">
+  <span class="pill {% if not item.active %}muted{% elif item.is_failing %}failed{% elif item.is_stale %}stale{% else %}ok{% endif %}">
     {{ item.name }}
-    {% if item.is_stale %}
+    {% if not item.active %}
+      · desativada
+    {% elif item.is_failing %}
+      · falha na coleta
+    {% elif item.is_stale %}
       · desatualizado
     {% elif item.last_success_at %}
       · {{ item.last_success_at|datetimebr }}

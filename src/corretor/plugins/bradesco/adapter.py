@@ -95,7 +95,11 @@ class BradescoAdapter:
             raise
         except Exception as exc:  # noqa: BLE001
             logger.exception("falha ao consultar o Bradesco")
-            raise AdapterError(f"falha ao consultar o Bradesco: {exc.__class__.__name__}") from exc
+            detail = " ".join(str(exc).split())
+            message = f"falha ao consultar o Bradesco: {exc.__class__.__name__}"
+            if detail:
+                message = f"{message}: {detail}"
+            raise AdapterError(message) from exc
 
         return items
 

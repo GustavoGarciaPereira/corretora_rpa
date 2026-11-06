@@ -25,9 +25,12 @@ def _configure_logging(level: str) -> None:
     )
 
 
-def _print_outcomes(outcomes) -> None:
+def _print_outcomes(outcomes) -> bool:
+    ok = True
     for outcome in outcomes:
         marker = "OK" if outcome.ok else "FALHA"
+        if not outcome.ok:
+            ok = False
         print(
             f"[{marker}] {outcome.insurer_name}: {outcome.status.label} "
             f"itens={outcome.items_found} novas={outcome.new_count} "
@@ -35,6 +38,7 @@ def _print_outcomes(outcomes) -> None:
         )
         if outcome.error:
             print(f"        erro: {outcome.error}")
+    return ok
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -123,10 +127,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "collect":
         container.init_db()
         if args.slug == "all":
-            _print_outcomes(container.collect_all())
+            ok = _print_outcomes(container.collect_all())
         else:
-            _print_outcomes([container.collect(args.slug)])
-        return 0
+            ok = _print_outcomes([container.collect(args.slug)])
+        return 0 if ok else 1
 
     if args.command == "mark-overdue":
         container.init_db()

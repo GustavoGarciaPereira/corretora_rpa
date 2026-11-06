@@ -20,7 +20,19 @@
         <td>{{ run.items_found }}</td>
         <td>{{ run.new_count }}</td>
         <td>{{ run.resolved_count }}</td>
-        <td class="muted small">{{ run.error|short(70) if run.error else "—" }}</td>
+        <td class="muted small error-cell">
+          {% if run.error %}
+          <details>
+            <summary>{{ run.error|short(70) }}</summary>
+            <pre class="error-text">{{ run.error }}</pre>
+            {% if run.evidence_path %}
+            <div class="muted small">
+              Evidência: <code>{{ run.evidence_path }}</code>
+            </div>
+            {% endif %}
+          </details>
+          {% else %}—{% endif %}
+        </td>
       </tr>
       {% else %}
       <tr><td colspan="7" class="empty">Nenhuma execução registrada.</td></tr>

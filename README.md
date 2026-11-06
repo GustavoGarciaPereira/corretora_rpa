@@ -44,6 +44,9 @@ comissão.
   aviso com os portais afetados.
 - Workflow: Detectada → Em análise → Avisada → Regularizada / Vencida / Descartada.
 - Status de saúde da coleta por seguradora — falha nunca vira “sem pendências”.
+- **Falhas visíveis**: o painel mostra o erro completo da coleta por seguradora
+  (sem truncar), com status e horário; a pill fica vermelha e a tabela de
+  execuções e a página de sessões permitem expandir o erro completo.
 - Novas seguradoras entram como **plugins**, sem alterar o núcleo.
 
 ## Arquitetura

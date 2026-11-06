@@ -166,3 +166,44 @@ def test_modal_de_sessao_expirada(settings, monkeypatch) -> None:
         assert "Sessão expirada" in response.text
         assert "Bradesco Seguros" in response.text
         assert "Renovar sessão" in response.text
+
+
+def test_painel_exibe_erro_completo_e_persistente(settings, monkeypatch) -> None:
+    from corretor.domain.errors import AdapterError
+
+    long_error = (
+        "Timeout de 60000ms aguardando a tabela de parcelas na pagina do portal; "
+        "verifique VPN, sessao do portal e possivel mudanca de layout"
+    )
+
+    app = create_app(settings)
+    with TestClient(app) as client:
+        container = app.state.container
+        container.seed_demo()
+
+        class BrokenAdapter:
+            def fetch_pending(self):
+                raise AdapterError(long_error)
+
+        monkeypatch.setattr(container.plugins, "get", lambda slug: BrokenAdapter())
+
+        collected = client.post("/collect")
+        assert collected.status_code == 200
+        assert "Falhas na coleta" in collected.text
+        assert long_error in collected.text
+        assert "pill failed" in collected.text
+        assert "Detalhes abaixo" in collected.text
+
+        home = client.get("/")
+        assert home.status_code == 200
+        assert "Falhas na coleta" in home.text
+        assert long_error in home.text
+        assert "pill failed" in home.text
+
+        runs = client.get("/runs")
+        assert runs.status_code == 200
+        assert long_error in runs.text
+
+        sessions = client.get("/sessions")
+        assert sessions.status_code == 200
+        assert long_error in sessions.text

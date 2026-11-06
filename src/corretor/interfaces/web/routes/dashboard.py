@@ -53,13 +53,19 @@ def collect_now(
 ):
     outcomes = container.collect_all()
     successes = sum(1 for outcome in outcomes if outcome.ok)
-    failures = len(outcomes) - successes
+    failed_outcomes = [outcome for outcome in outcomes if not outcome.ok]
     attention = [outcome for outcome in outcomes if outcome.status is RunStatus.NEEDS_ATTENTION]
+    panel_failures = [
+        outcome for outcome in failed_outcomes if outcome.status is not RunStatus.NEEDS_ATTENTION
+    ]
     if not outcomes:
         message = "Nenhuma seguradora ativa para coletar."
         kind = "warning"
-    elif failures:
-        message = f"Coleta concluída: {successes} sucesso(s), {failures} falha(s)."
+    elif failed_outcomes:
+        message = (
+            f"Coleta concluída: {successes} sucesso(s), "
+            f"{len(failed_outcomes)} falha(s). Detalhes abaixo."
+        )
         kind = "warning" if successes else "error"
     else:
         message = f"Coleta concluída em {successes} seguradora(s)."
@@ -74,6 +80,7 @@ def collect_now(
         message=message,
         message_kind=kind,
         attention=attention,
+        failures=panel_failures,
     )
 
 

@@ -34,7 +34,10 @@
       <div>Último sucesso: {{ item.last_success_at|datetimebr }}</div>
       <div>Última execução: {{ item.last_status.label if item.last_status else "—" }}</div>
       {% if item.last_error %}
-      <div class="muted small">{{ item.last_error|short(160) }}</div>
+      <details class="error-cell">
+        <summary class="muted small">{{ item.last_error|short(120) }}</summary>
+        <pre class="error-text">{{ item.last_error }}</pre>
+      </details>
       {% endif %}
     </div>
 

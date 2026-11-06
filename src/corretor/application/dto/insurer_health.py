@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from corretor.domain.enums import RunStatus
+from corretor.domain.enums import FAILED_RUN_STATUSES, RunStatus
 
 
 @dataclass(frozen=True, slots=True)
@@ -16,3 +16,7 @@ class InsurerHealth:
     is_stale: bool
     last_status: RunStatus | None
     last_error: str
+
+    @property
+    def is_failing(self) -> bool:
+        return self.last_status is not None and self.last_status in FAILED_RUN_STATUSES
