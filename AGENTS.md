@@ -13,7 +13,7 @@ parcela esquecida pode deixar o cliente sem cobertura e gerar perda de comissão
 novidades, listar no painel e registrar evidências. Alertas externos e
 integração com ERP/CRM ficam para fases posteriores.
 
-**Estado em 2026-10-30:** fase 0 concluída. Painel FastAPI + Jinja/HTMX,
+**Estado em 2026-11-06:** etapa 0 concluída. Painel FastAPI + Jinja/HTMX,
 loader de plugins, adapter demo, CLI e testes verdes. O plugin Bradesco tem
 **adapter da API oficial** de Propostas Pendentes (OAuth2/JWT), mas o onboarding
 comercial está em **standby**; a operação usa o **fallback HTML** com sessão
@@ -21,6 +21,8 @@ assistida. A página `/sessions` permite renovação manual e **tentativa de log
 automático** com credenciais no keyring/Vault; se houver captcha/MFA, cai no
 manual. A coleta de **Parcelas em Atraso** está implementada, mas desativada por
 `BRADESCO_COLLECT_PARCELAS=false`; falta Allianz/receita declarativa.
+**Próximo marco:** fechar o Bradesco em produção assistida e endurecer
+segurança/LGPD antes de ampliar a cobertura (Etapa 1 do `docs/PLANO.md`).
 
 **Fora de escopo (não implementar sem pedido explícito):**
 
@@ -520,10 +522,11 @@ Uma entrega só termina quando:
 | Fase | Entrega |
 |---|---|
 | 0 | **Concluída:** Clean Architecture + loader de plugins + adapter demo + painel Jinja/HTMX + CLI + testes |
-| 1 | **Bradesco Propostas:** API oficial implementada (onboarding em standby) + fallback HTML com `/sessions`; Parcelas em Atraso prontas atrás de flag; falta Allianz e receita declarativa com fallbacks |
-| 2 | Scheduler diário, watchdog, digest interno, workflow completo e `/healthz` |
-| 3 | Porto, testes de mutação, fallback LLM, Postgres/Docker; Bradesco em produção assistida |
-| 4 | Integração com o sistema da corretora (API/webhook com idempotência) |
+| 1 | **Bradesco em produção assistida:** modo sombra, promoção a `ready`, coleta em dias úteis, `PARTIAL`, retenção de evidências e proteção do `/sessions` |
+| 2 | Operação diária e segurança: autenticação/papéis, watchdog com alerta, digest interno e workflow auditável |
+| 3 | Cobertura e resiliência: Allianz, receita declarativa, testes de mutação e Porto |
+| 4 | Infraestrutura: Alembic/Postgres/Docker, backup, métricas e deploy |
+| 5 | Integração com o sistema da corretora (API/webhook idempotente) |
 
 ## 14. Perguntas em aberto
 

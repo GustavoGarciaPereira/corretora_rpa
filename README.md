@@ -11,6 +11,8 @@ portais.
 > assistida. A página `/sessions` mostra o status e permite **renovar a sessão
 > pelo navegador**, salvando o `state.json` automaticamente. **Parcelas em
 > Atraso** está implementado, mas desativado por flag; falta o adapter Allianz.
+> **Próximo marco:** consolidar o Bradesco em produção assistida e endurecer
+> segurança/LGPD antes de ampliar a cobertura (Etapa 1 do plano).
 
 ## Documentos
 
@@ -280,8 +282,9 @@ uv run ruff check . && uv run ruff format --check .
   projeto.
 - Segredos apenas em variáveis de ambiente/cofre; `.env` e `data/` não vão para
   o Git.
-- Dados de segurados são pessoais: seeds e fixtures são fictícios, CPF é
-  mascarado e evidências têm retenção definida.
+- Dados de segurados são pessoais: seeds e fixtures são fictícios. O
+  mascaramento de CPF e a retenção de evidências estão previstos na Etapa 1 do
+  plano e **ainda não estão implementados**.
 - A solução é read-only: não paga, não emite boleto e não altera apólices.
 - Não contorna MFA/captcha; quando necessário, a coleta aguarda intervenção
   humana.
@@ -291,7 +294,8 @@ uv run ruff check . && uv run ruff format --check .
 | Fase | Entrega |
 |---|---|
 | 0 | **Concluída:** Clean Architecture + plugins + adapter demo + painel + CLI + testes |
-| 1 | **Bradesco Propostas:** API oficial implementada (onboarding em standby) + fallback HTML com `/sessions`; Parcelas em Atraso prontas atrás de flag; falta Allianz e receita declarativa |
-| 2 | Scheduler, watchdog, digest interno e workflow completo |
-| 3 | Porto, testes de mutação, fallback LLM, Postgres/Docker |
-| 4 | Integração com ERP/CRM via API/webhook idempotente |
+| 1 | **Bradesco em produção assistida:** modo sombra, promoção a `ready`, dias úteis, `PARTIAL`, retenção de evidências e proteção do `/sessions` |
+| 2 | Operação diária e segurança: autenticação/papéis, watchdog com alerta, digest e workflow auditável |
+| 3 | Cobertura e resiliência: Allianz, receita declarativa, testes de mutação e Porto |
+| 4 | Infraestrutura: Alembic/Postgres/Docker, backup, métricas e deploy |
+| 5 | Integração com ERP/CRM via API/webhook idempotente |
