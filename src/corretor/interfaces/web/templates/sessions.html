@@ -1,23 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Sessões · {{ app_name }}{% endblock %}
+{% block title %}Conexões · {{ app_name }}{% endblock %}
 
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Sessões dos portais</h1>
-    <p class="muted">Acompanhe a validade da sessão e renove quando o portal expirar.</p>
+    <h1>Conexões dos portais</h1>
+    <p class="muted">Acompanhe a validade da conexão e renove quando o portal expirar.</p>
   </div>
   <a class="btn" href="/">Voltar ao painel</a>
 </div>
 
 <div class="flash warning">
-  O sistema tenta renovar a sessão automaticamente com as credenciais do cofre.
-  Se o portal exigir reCAPTCHA/MFA, a renovação passa a ser manual.
+  A renovação automática está disponível apenas para portais com login
+  configurado (hoje, Bradesco). Se o portal exigir reCAPTCHA/MFA, a renovação
+  passa a ser manual.
 </div>
 
 {% if expired %}
 <div class="flash success">
-  Sessão forçada a expirar. O arquivo local foi removido; a próxima coleta
+  Conexão forçada a expirar. O arquivo local foi removido; a próxima coleta
   tentará o login automático.
 </div>
 {% endif %}
@@ -32,48 +33,53 @@
     </div>
     <div class="plugin-health">
       <div>Último sucesso: {{ item.last_success_at|datetimebr }}</div>
-      <div>Última execução: {{ item.last_status.label if item.last_status else "—" }}</div>
+      <div>Última coleta: {{ item.last_status.label if item.last_status else "—" }}</div>
       {% if item.last_error %}
       <details class="error-cell">
-        <summary class="muted small">{{ item.last_error|short(120) }}</summary>
+        <summary class="muted small">Detalhes técnicos</summary>
         <pre class="error-text">{{ item.last_error }}</pre>
       </details>
       {% endif %}
     </div>
 
     {% if item.slug == 'bradesco' %}
-    <div class="session-box">
-      <div>
-        Arquivo de sessão:
-        <strong>{{ 'encontrado' if bradesco_state_exists else 'não encontrado' }}</strong>
-      </div>
-      <code>{{ bradesco_state_path }}</code>
-      {% if renewal.status != 'running' %}
-      <form method="post" action="/sessions/bradesco/expire"
-            onsubmit="return confirm('Remover a sessão salva do Bradesco?');">
-        <button class="btn danger" type="submit">
-          Forçar expiração da sessão
-        </button>
-      </form>
-      <span class="muted small">
-        Remove o <code>state.json</code> local para testar a renovação.
-      </span>
-      {% endif %}
-    </div>
     {% set slug = 'bradesco' %}
     {% include "partials/renewal_status.html" %}
-    <details>
-      <summary class="small muted">Comando manual (fallback)</summary>
-      <pre class="command">{{ renew_bradesco }}</pre>
-      <p class="muted small">
-        Faça o login manual, navegue até AUTO/Propostas Pendentes e clique em
-        Resume no Playwright Inspector. Depois copie o novo
-        <code>state.json</code> para o caminho acima.
-      </p>
+    <details class="advanced">
+      <summary class="small muted">Avançado</summary>
+      <div class="session-box">
+        <div>
+          Conexão salva:
+          <strong>{{ 'encontrada' if bradesco_state_exists else 'não encontrada' }}</strong>
+        </div>
+        <code>{{ bradesco_state_path }}</code>
+        {% if renewal.status != 'running' %}
+        <form method="post" action="/sessions/bradesco/expire"
+              onsubmit="return confirm('Remover a conexão salva do Bradesco?');">
+          <button class="btn danger" type="submit">
+            Forçar expiração da conexão
+          </button>
+        </form>
+        <span class="muted small">
+          Remove o <code>state.json</code> local para testar a renovação.
+        </span>
+        {% endif %}
+      </div>
+      <details>
+        <summary class="small muted">Comando manual (fallback)</summary>
+        <pre class="command">{{ renew_bradesco }}</pre>
+        <p class="muted small">
+          Faça o login manual, navegue até AUTO/Propostas Pendentes e clique em
+          Resume no Playwright Inspector. Depois copie o novo
+          <code>state.json</code> para o caminho acima.
+        </p>
+      </details>
     </details>
     {% else %}
     <p class="muted small">
-      Este portal ainda não possui fluxo de renovação assistida configurado.
+      Este portal ainda não possui renovação assistida configurada. A coleta
+      usa a conexão definida no adapter.
+      <a href="/plugins">Ver detalhes em Seguradoras</a>.
     </p>
     {% endif %}
   </article>

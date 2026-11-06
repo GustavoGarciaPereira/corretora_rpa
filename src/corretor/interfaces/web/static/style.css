@@ -46,8 +46,9 @@ a:hover {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   display: flex;
-  gap: 32px;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  justify-content: flex-start;
   padding: 14px 28px;
   position: sticky;
   top: 0;
@@ -64,7 +65,17 @@ a:hover {
 
 .topbar nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 20px;
+}
+
+.main-nav {
+  margin-left: auto;
+}
+
+.admin-nav {
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
 }
 
 .topbar nav a {
@@ -72,9 +83,31 @@ a:hover {
   font-weight: 600;
 }
 
-.topbar nav a:hover {
+.topbar nav a:hover,
+.topbar nav a[aria-current="page"] {
   color: var(--text);
   text-decoration: none;
+}
+
+.skip-link {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  color: var(--info);
+  font-weight: 650;
+  left: -9999px;
+  padding: 8px 12px;
+  position: absolute;
+  text-decoration: none;
+  top: 8px;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  left: 12px;
+  outline: 2px solid #d1e9ff;
+  outline-offset: 2px;
 }
 
 .container {
@@ -259,6 +292,11 @@ textarea {
   margin-top: 6px;
 }
 
+.card .label.muted {
+  font-size: 0.72rem;
+  margin-top: 5px;
+}
+
 .card.danger .value {
   color: var(--danger);
 }
@@ -275,8 +313,15 @@ textarea {
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--muted);
+  display: inline-block;
   font-size: 0.76rem;
   padding: 4px 10px;
+  text-decoration: none;
+}
+
+.pill:hover {
+  filter: brightness(0.97);
+  text-decoration: none;
 }
 
 .pill.ok {
@@ -285,7 +330,9 @@ textarea {
   color: var(--ok);
 }
 
-.pill.stale {
+.pill.stale,
+.pill.partial,
+.pill.attention {
   background: #fffaeb;
   border-color: #fedf89;
   color: var(--warn);
@@ -295,6 +342,13 @@ textarea {
   background: #fef3f2;
   border-color: #fecdca;
   color: var(--danger);
+}
+
+.pill.running,
+.pill.muted {
+  background: #f2f4f7;
+  border-color: var(--border);
+  color: var(--muted);
 }
 
 .flash {
@@ -361,7 +415,26 @@ textarea {
 }
 
 .error-item .actions {
-  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.error-item form {
+  margin: 0;
+}
+
+.error-item p {
+  margin: 6px 0 0;
+}
+
+.advanced summary {
+  cursor: pointer;
+}
+
+.table-hint {
+  margin: 0 0 10px;
 }
 
 .error-cell summary {
@@ -395,6 +468,7 @@ textarea {
 }
 
 .table-wrap {
+  -webkit-overflow-scrolling: touch;
   overflow-x: auto;
 }
 
@@ -478,6 +552,7 @@ tr.row-overdue:hover {
 }
 
 .badge.warn,
+.badge.stale,
 .badge.partial,
 .badge.attention,
 .badge.em-analise {
@@ -786,14 +861,29 @@ tr.row-overdue:hover {
   }
 
   .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
     padding: 12px 14px;
   }
 
   .topbar nav {
-    gap: 12px;
+    gap: 10px 14px;
   }
 
-  .cards,
+  .main-nav {
+    margin-left: 0;
+  }
+
+  .admin-nav {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .filters,
   .detail-list,
   .form-grid {
@@ -813,5 +903,11 @@ tr.row-overdue:hover {
   .filter-actions .btn {
     text-align: center;
     width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .cards {
+    grid-template-columns: 1fr;
   }
 }

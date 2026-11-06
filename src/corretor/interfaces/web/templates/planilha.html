@@ -4,12 +4,12 @@
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Controle de parcelas pendentes</h1>
-    <p class="muted">Visão no formato da planilha operacional, com dados consolidados.</p>
+    <h1>Planilha</h1>
+    <p class="muted">Controle de parcelas pendentes no formato operacional.</p>
   </div>
   <div class="actions">
-    <a class="btn primary" href="/">Ir para o painel</a>
-    <a class="btn" href="/export-planilha.csv?insurer={{ filters.insurer_slug }}&kind={{ filters.kind }}&status={{ filters.status }}&q={{ filters.q }}">Exportar planilha</a>
+    <a class="btn primary" href="/export-planilha.csv?insurer={{ filters.insurer_slug }}&kind={{ filters.kind }}&status={{ filters.status }}&q={{ filters.q }}">Exportar planilha</a>
+    <a class="btn" href="/">Ir para o painel</a>
   </div>
 </div>
 
@@ -35,7 +35,7 @@
   <div>
     <label for="status">Status</label>
     <select id="status" name="status">
-      <option value="" {% if not filters.status %}selected{% endif %}>Todos</option>
+      <option value="" {% if not filters.status %}selected{% endif %}>Todas (inclui fechadas)</option>
       <option value="ABERTAS" {% if filters.status == 'ABERTAS' %}selected{% endif %}>Abertas</option>
       <option value="VENCIDAS" {% if filters.status == 'VENCIDAS' %}selected{% endif %}>Vencidas</option>
       {% for status in statuses %}
@@ -49,8 +49,13 @@
   </div>
   <div class="filter-actions">
     <button class="btn" type="submit">Filtrar</button>
+    {% if is_filtered %}
+    <a class="btn" href="/planilha">Limpar filtros</a>
+    {% endif %}
   </div>
 </form>
+
+<p class="muted small table-hint">Role horizontalmente para ver todas as colunas.</p>
 
 <section class="panel">
   <div class="panel-header">

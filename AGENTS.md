@@ -407,10 +407,13 @@ DETECTADA → EM_ANALISE → AVISADA → REGULARIZADA
   /collect` abre um aviso com os portais afetados e link para `/sessions`.
   O endpoint de renovação abre um navegador na máquina do servidor; não expor
   a aplicação publicamente sem autenticação.
-- Falhas de coleta aparecem em **“Falhas na coleta”** no painel com a mensagem
-  completa (sem truncar), status e horário; a pill da seguradora fica vermelha
-  (`falha na coleta`). A tabela de execuções e `/sessions` permitem expandir o
-  erro completo; o painel mantém a última falha após recarregar a página.
+- O painel tem a seção **“Precisa de atenção”** com estado por seguradora
+  (falha, parcial, aguardando intervenção, desatualizada, sem coleta), resumo
+  amigável, **detalhes técnicos** expansíveis e ação por seguradora
+  (`Tentar novamente`, `Coletar agora`, `Renovar conexão`). As pills de
+  seguradora são clicáveis e filtram o painel; a fila abre por padrão com
+  **pendências abertas**. `/sessions` e `/runs` (Coletas) mantêm o detalhe
+  completo do erro.
 - Acessibilidade básica: labels associados, foco visível, contraste, tabela
   semântica.
 - Sem framework de frontend/build step. CSS próprio e enxuto.

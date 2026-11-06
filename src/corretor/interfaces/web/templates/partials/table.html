@@ -26,11 +26,14 @@
         <tr>
           <td colspan="10">
             <div class="empty">
-              {% if summary.failed_insurers %}
-                Não foi possível verificar {{ summary.failed_insurers }} seguradora(s).
+              {% if attention_insurers %}
+                {{ attention_insurers }} seguradora(s) precisam de atenção.
                 Os dados exibidos podem estar incompletos.
+              {% elif is_filtered %}
+                Nenhum resultado para estes filtros.
+                <a href="/">Limpar filtros</a>
               {% else %}
-                Nenhuma parcela pendente encontrada.
+                Nenhuma pendência aberta encontrada.
               {% endif %}
             </div>
           </td>

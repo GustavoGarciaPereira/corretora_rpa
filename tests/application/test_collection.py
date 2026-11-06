@@ -6,7 +6,7 @@ from corretor.application.dto import PendencyFilters
 from corretor.application.ports import AdapterProvider
 from corretor.application.services import CollectionService
 from corretor.domain.entities import AdapterManifest, RawInstallment
-from corretor.domain.enums import RunStatus, WorkflowStatus
+from corretor.domain.enums import InsurerState, RunStatus, WorkflowStatus
 from corretor.domain.errors import AdapterError
 from corretor.domain.ports import InsurerAdapter
 
@@ -100,7 +100,8 @@ def test_falha_nao_apaga_dados_e_registra_run(container, store) -> None:
     views = store.list_pendencies(PendencyFilters(), today)
     assert len(views) == 1
     assert views[0].workflow_status is WorkflowStatus.DETECTADA
-    assert store.summary(today, container.stale_before()).failed_insurers == 1
+    health = store.list_insurer_health(container.stale_before())
+    assert health[0].state is InsurerState.FAILED
 
 
 def test_collect_all_com_plugin_demo_real(container, store) -> None:

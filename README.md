@@ -40,15 +40,16 @@ comissão.
 - **Visão planilha** (`/planilha`) e exportação CSV no formato do controle
   operacional: Data Ação, CIA, Tipo, Segurado, Ramo, Forma Pagto, Vencimento,
   Parcela, Vigência Ajustada, Ação, Produtor, Novo Venc., Data Limite e Status.
-- **Sessões** (`/sessions`) com status por portal e botão **Renovar sessão
+- **Conexões** (`/sessions`) com status por portal e botão **Renovar conexão
   agora**: abre o navegador, espera o login manual, salva o `state.json` e
   atualiza o status. Se a coleta falhar por sessão expirada, o painel abre um
   aviso com os portais afetados.
 - Workflow: Detectada → Em análise → Avisada → Regularizada / Vencida / Descartada.
 - Status de saúde da coleta por seguradora — falha nunca vira “sem pendências”.
-- **Falhas visíveis**: o painel mostra o erro completo da coleta por seguradora
-  (sem truncar), com status e horário; a pill fica vermelha e a tabela de
-  execuções e a página de sessões permitem expandir o erro completo.
+- **Problemas visíveis**: o painel “Precisa de atenção” mostra o estado de cada
+  seguradora (falha, parcial, desatualizada, sem coleta), o resumo amigável, os
+  detalhes técnicos e uma ação por seguradora; as pills filtram o painel e a
+  fila abre por padrão com pendências abertas.
 - Novas seguradoras entram como **plugins**, sem alterar o núcleo.
 
 ## Arquitetura

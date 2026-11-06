@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 
+from corretor.application.dto import OPEN_FILTER
 from corretor.infrastructure.container import Container
 from corretor.infrastructure.persistence import SqlAlchemyStore
 
@@ -37,14 +38,14 @@ HEADERS = [
 def planilha(
     request: Request,
     insurer: str = "",
-    status: str = "",
+    status: str | None = None,
     q: str = "",
     kind: str = "",
     store: SqlAlchemyStore = Depends(get_store),
     container: Container = Depends(get_container),
     templates: Jinja2Templates = Depends(get_templates),
 ):
-    filters = filters_from_query(insurer, status, q, kind)
+    filters = filters_from_query(insurer, status if status is not None else OPEN_FILTER, q, kind)
     context = dashboard_context(request, store, container, filters)
     return templates.TemplateResponse(request=request, name="planilha.html", context=context)
 
@@ -53,13 +54,13 @@ def planilha(
 def export_planilha(
     request: Request,
     insurer: str = "",
-    status: str = "",
+    status: str | None = None,
     q: str = "",
     kind: str = "",
     store: SqlAlchemyStore = Depends(get_store),
     container: Container = Depends(get_container),
 ):
-    filters = filters_from_query(insurer, status, q, kind)
+    filters = filters_from_query(insurer, status if status is not None else OPEN_FILTER, q, kind)
     rows = store.list_pendencies(filters, container.clock.today())
     buffer = io.StringIO()
     writer = csv.writer(buffer, delimiter=";")

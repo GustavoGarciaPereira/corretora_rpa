@@ -8,5 +8,4 @@ class Summary:
     total_open: int
     due_soon: int
     overdue: int
-    failed_insurers: int
     total_insurers: int

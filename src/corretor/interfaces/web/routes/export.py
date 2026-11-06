@@ -6,6 +6,7 @@ import io
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
 
+from corretor.application.dto import OPEN_FILTER
 from corretor.infrastructure.container import Container
 from corretor.infrastructure.persistence import SqlAlchemyStore
 
@@ -37,13 +38,13 @@ HEADERS = [
 def export_csv(
     request: Request,
     insurer: str = "",
-    status: str = "",
+    status: str | None = None,
     q: str = "",
     kind: str = "",
     store: SqlAlchemyStore = Depends(get_store),
     container: Container = Depends(get_container),
 ):
-    filters = filters_from_query(insurer, status, q, kind)
+    filters = filters_from_query(insurer, status if status is not None else OPEN_FILTER, q, kind)
     rows = store.list_pendencies(filters, container.clock.today())
     buffer = io.StringIO()
     writer = csv.writer(buffer, delimiter=";")

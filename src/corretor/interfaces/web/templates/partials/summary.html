@@ -11,8 +11,15 @@
     <div class="value">{{ summary.overdue }}</div>
     <div class="label">Vencidas</div>
   </div>
-  <div class="card {% if summary.failed_insurers %}danger{% endif %}">
-    <div class="value">{{ summary.failed_insurers }}</div>
-    <div class="label">Seguradoras com falha · de {{ summary.total_insurers }}</div>
+  <div class="card {% if attention_insurers %}danger{% endif %}">
+    <div class="value">{{ attention_insurers }}</div>
+    <div class="label">Seguradoras com atenção · de {{ summary.total_insurers }}</div>
+    {% if attention_insurers %}
+    <div class="label muted">
+      {{ attention_breakdown.failed }} falha(s) ·
+      {{ attention_breakdown.stale }} desatualizada(s) ·
+      {{ attention_breakdown.never }} sem coleta
+    </div>
+    {% endif %}
   </div>
 </div>

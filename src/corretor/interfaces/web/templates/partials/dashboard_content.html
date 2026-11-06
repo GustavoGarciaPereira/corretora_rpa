@@ -12,11 +12,11 @@
       {% endfor %}
     </ul>
     <p class="muted">
-      Renove a sessão no navegador e tente novamente. O reCAPTCHA exige
+      Renove a conexão no navegador e tente novamente. O reCAPTCHA exige
       intervenção humana.
     </p>
     <div class="actions">
-      <a class="btn primary" href="/sessions">Renovar sessão</a>
+      <a class="btn primary" href="/sessions">Renovar conexão</a>
       <button class="btn" type="button"
               onclick="this.closest('.modal-overlay').remove()">Fechar</button>
     </div>
@@ -31,30 +31,37 @@
 {% if error_items %}
 <section class="panel error-panel" aria-labelledby="error-title">
   <div class="panel-header">
-    <strong id="error-title">Falhas na coleta</strong>
-    <a href="/runs">ver execuções</a>
+    <strong id="error-title">Precisa de atenção</strong>
+    <a href="/runs">ver coletas</a>
   </div>
   <div class="error-list">
     {% for item in error_items %}
     <article class="error-item">
       <div class="error-head">
         <strong>{{ item.name }}</strong>
-        {% if item.status %}
-        <span class="badge {{ item.status.css_class }}">{{ item.status.label }}</span>
-        {% endif %}
-        {% if item.stale %}
-        <span class="badge danger">dados desatualizados</span>
-        {% endif %}
+        <span class="badge {{ item.state.css_class }}">{{ item.state.label }}</span>
         {% if item.when %}
-        <span class="muted small">{{ item.when|datetimebr }}</span>
+        <span class="muted small">última tentativa {{ item.when|datetimebr }}</span>
         {% endif %}
       </div>
-      <pre class="error-text">{{ item.error }}</pre>
-      {% if item.status and item.status.value == 'AGUARDANDO_INTERVENCAO' %}
-      <div class="actions">
-        <a class="btn primary" href="/sessions">Renovar sessão</a>
-      </div>
+      <p class="muted small">{{ item.detail }}</p>
+      {% if item.error %}
+      <details class="error-cell">
+        <summary class="muted small">Detalhes técnicos</summary>
+        <pre class="error-text">{{ item.error }}</pre>
+      </details>
       {% endif %}
+      <div class="actions">
+        {% if item.needs_session %}
+        <a class="btn primary" href="/sessions">Renovar conexão</a>
+        {% endif %}
+        <form hx-post="/collect/{{ item.slug }}" hx-target="#dashboard-content"
+              hx-swap="outerHTML" hx-indicator="#loading">
+          <button class="btn {% if not item.needs_session %}primary{% endif %}" type="submit">
+            {{ item.retry_label }}
+          </button>
+        </form>
+      </div>
     </article>
     {% endfor %}
   </div>
@@ -66,20 +73,16 @@
 {% if health %}
 <div class="insurer-strip">
   {% for item in health %}
-  <span class="pill {% if not item.active %}muted{% elif item.is_failing %}failed{% elif item.is_stale %}stale{% else %}ok{% endif %}">
-    {{ item.name }}
-    {% if not item.active %}
-      · desativada
-    {% elif item.is_failing %}
-      · falha na coleta
-    {% elif item.is_stale %}
-      · desatualizado
-    {% elif item.last_success_at %}
+  <a class="pill {{ item.state.css_class }}" href="/?insurer={{ item.slug }}"
+     title="Filtrar pendências de {{ item.name }}"
+     aria-label="Filtrar pendências de {{ item.name }}">
+    {{ item.name }} · {{ item.state.label }}
+    {% if item.state.value == 'OK' and item.last_success_at %}
       · {{ item.last_success_at|datetimebr }}
-    {% else %}
-      · sem coleta
+    {% elif item.state.value == 'DESATUALIZADA' and item.last_success_at %}
+      · desde {{ item.last_success_at|datetimebr }}
     {% endif %}
-  </span>
+  </a>
   {% endfor %}
 </div>
 {% endif %}
@@ -88,7 +91,7 @@
 
 <section class="panel">
   <div class="panel-header">
-    <strong>Últimas execuções</strong>
+    <strong>Últimas coletas</strong>
     <a href="/runs">ver todas</a>
   </div>
   {% include "partials/runs_table.html" %}

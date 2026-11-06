@@ -532,19 +532,6 @@ class SqlAlchemyStore:
             )
             or 0
         )
-        failed_insurers = (
-            self.session.scalar(
-                select(func.count(InsurerModel.id)).where(
-                    InsurerModel.active.is_(True),
-                    or_(
-                        InsurerModel.last_success_at.is_(None),
-                        InsurerModel.last_success_at < stale_before,
-                        InsurerModel.last_run_at > InsurerModel.last_success_at,
-                    ),
-                )
-            )
-            or 0
-        )
         total_insurers = (
             self.session.scalar(
                 select(func.count(InsurerModel.id)).where(InsurerModel.active.is_(True))
@@ -555,7 +542,6 @@ class SqlAlchemyStore:
             total_open=int(total_open),
             due_soon=int(due_soon),
             overdue=int(overdue),
-            failed_insurers=int(failed_insurers),
             total_insurers=int(total_insurers),
         )
 

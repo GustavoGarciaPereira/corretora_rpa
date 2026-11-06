@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from corretor.domain.enums import FAILED_RUN_STATUSES, RunStatus
 from corretor.infrastructure.container import Container
 from corretor.infrastructure.persistence import SqlAlchemyStore
 
@@ -19,15 +18,7 @@ RENEW_BRADESCO = (
 
 
 def _state(item) -> tuple[str, str]:
-    if item.last_status is RunStatus.NEEDS_ATTENTION:
-        return "expirada", "danger"
-    if item.last_status in FAILED_RUN_STATUSES:
-        return "falha", "warn"
-    if item.is_stale:
-        return "desatualizada", "warn"
-    if item.last_success_at is None:
-        return "sem coleta", "muted"
-    return "ok", "success"
+    return item.state.label, item.state.css_class
 
 
 @router.get("/sessions", response_class=HTMLResponse)

@@ -4,28 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v={{ asset_version }}">
   <script src="/static/htmx.min.js" defer></script>
 </head>
 <body>
+  <a class="skip-link" href="#main">Pular para o conteúdo</a>
+  {% set current = request.url.path %}
   <header class="topbar">
     <a class="brand" href="/">{{ app_name }}</a>
-    <nav>
-      <a href="/">Painel</a>
-      <a href="/planilha">Planilha</a>
-      <a href="/sessions">Sessões</a>
-      <a href="/runs">Execuções</a>
-      <a href="/plugins">Plugins</a>
+    <nav class="main-nav" aria-label="Operação">
+      <a href="/" {% if current == '/' %}aria-current="page"{% endif %}>Painel</a>
+      <a href="/planilha" {% if current == '/planilha' %}aria-current="page"{% endif %}>Planilha</a>
+      <a href="/plugins" {% if current == '/plugins' %}aria-current="page"{% endif %}>Seguradoras</a>
+    </nav>
+    <nav class="admin-nav" aria-label="Administração">
+      <a href="/runs" {% if current == '/runs' %}aria-current="page"{% endif %}>Coletas</a>
+      <a href="/sessions" {% if current == '/sessions' %}aria-current="page"{% endif %}>Conexões</a>
     </nav>
   </header>
 
-  <main class="container">
+  <main id="main" class="container">
     {% block content %}{% endblock %}
   </main>
 
   <footer class="footer">
     <span>Corretor RPA · monitoramento somente leitura</span>
-    <a href="/healthz">healthz</a>
   </footer>
 </body>
 </html>

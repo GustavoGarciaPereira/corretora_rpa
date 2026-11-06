@@ -42,15 +42,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.container = container
 
     base_dir = Path(__file__).resolve().parent
+    static_dir = base_dir / "static"
     app.mount(
         "/static",
-        StaticFiles(directory=base_dir / "static"),
+        StaticFiles(directory=static_dir),
         name="static",
     )
 
     templates = Jinja2Templates(directory=base_dir / "templates")
     register_filters(templates.env)
     templates.env.globals["app_name"] = settings.app_name
+    try:
+        asset_version = str(int((static_dir / "style.css").stat().st_mtime))
+    except OSError:
+        asset_version = "1"
+    templates.env.globals["asset_version"] = asset_version
     app.state.templates = templates
 
     for router in ROUTERS:

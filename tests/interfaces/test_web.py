@@ -30,11 +30,11 @@ def test_painel_coleta_e_workflow(settings) -> None:
 
         runs = client.get("/runs")
         assert runs.status_code == 200
-        assert "Execuções de coleta" in runs.text
+        assert "Coletas" in runs.text
 
         sessions = client.get("/sessions")
         assert sessions.status_code == 200
-        assert "Sessões dos portais" in sessions.text
+        assert "Conexões" in sessions.text
         assert "Seguradora Demo" in sessions.text
         assert "Renovar manualmente" in sessions.text
 
@@ -139,8 +139,8 @@ def test_forcar_expiracao_remove_sessao_salva(settings) -> None:
 
         page = client.get("/sessions?expired=1")
         assert page.status_code == 200
-        assert "Sessão forçada a expirar" in page.text
-        assert "não encontrado" in page.text
+        assert "Conexão forçada a expirar" in page.text
+        assert "não encontrada" in page.text
         assert "expirada" in page.text
 
 
@@ -165,7 +165,7 @@ def test_modal_de_sessao_expirada(settings, monkeypatch) -> None:
         assert response.status_code == 200
         assert "Sessão expirada" in response.text
         assert "Bradesco Seguros" in response.text
-        assert "Renovar sessão" in response.text
+        assert "Renovar conexão" in response.text
 
 
 def test_painel_exibe_erro_completo_e_persistente(settings, monkeypatch) -> None:
@@ -189,14 +189,14 @@ def test_painel_exibe_erro_completo_e_persistente(settings, monkeypatch) -> None
 
         collected = client.post("/collect")
         assert collected.status_code == 200
-        assert "Falhas na coleta" in collected.text
+        assert "Precisa de atenção" in collected.text
         assert long_error in collected.text
         assert "pill failed" in collected.text
         assert "Detalhes abaixo" in collected.text
 
         home = client.get("/")
         assert home.status_code == 200
-        assert "Falhas na coleta" in home.text
+        assert "Precisa de atenção" in home.text
         assert long_error in home.text
         assert "pill failed" in home.text
 
@@ -207,3 +207,83 @@ def test_painel_exibe_erro_completo_e_persistente(settings, monkeypatch) -> None
         sessions = client.get("/sessions")
         assert sessions.status_code == 200
         assert long_error in sessions.text
+
+
+def test_card_e_painel_compartilham_o_mesmo_estado(settings, monkeypatch) -> None:
+    from corretor.domain.errors import AdapterError
+
+    app = create_app(settings)
+    with TestClient(app) as client:
+        container = app.state.container
+        container.seed_demo()
+        with container.session() as store:
+            store.create_insurer("sem-coleta", "Seguradora Sem Coleta", "demo")
+
+        class BrokenAdapter:
+            def fetch_pending(self):
+                raise AdapterError("portal indisponível")
+
+        monkeypatch.setattr(container.plugins, "get", lambda slug: BrokenAdapter())
+        collected = client.post("/collect/demo")
+        assert collected.status_code == 200
+
+        home = client.get("/")
+        assert home.status_code == 200
+        assert "Seguradoras com atenção · de 2" in home.text
+        assert home.text.count('class="error-item"') == 2
+        assert "1 falha(s)" in home.text
+        assert "1 sem coleta" in home.text
+        assert "Seguradora Sem Coleta" in home.text
+        assert "Coletar agora" in home.text
+
+
+def test_filtro_padrao_mostra_abertas_e_permite_historico(settings) -> None:
+    app = create_app(settings)
+    with TestClient(app) as client:
+        container = app.state.container
+        container.seed_demo()
+        with container.session() as store:
+            target = store.list_pendencies(PendencyFilters(), container.clock.today())[0]
+            container.pendency_service(store).update_status(target.id, WorkflowStatus.REGULARIZADA)
+
+        home = client.get("/")
+        assert home.status_code == 200
+        assert "4 registro(s)" in home.text
+        assert 'href="/?insurer=demo"' in home.text
+        assert "Limpar filtros" not in home.text
+
+        closed = client.get("/?status=REGULARIZADA")
+        assert closed.status_code == 200
+        assert "1 registro(s)" in closed.text
+        assert "Limpar filtros" in closed.text
+
+        everything = client.get("/?status=")
+        assert "5 registro(s)" in everything.text
+
+
+def test_filtro_htmx_atualiza_url_e_recarrega_pagina_completa(settings) -> None:
+    app = create_app(settings)
+    with TestClient(app) as client:
+        app.state.container.seed_demo()
+
+        full = client.get("/?status=ABERTAS")
+        assert full.status_code == 200
+        assert "<html" in full.text
+
+        partial = client.get("/?status=ABERTAS", headers={"HX-Request": "true"})
+        assert partial.status_code == 200
+        assert "<html" not in partial.text
+        assert "Pendências" in partial.text
+
+
+def test_coletar_uma_seguradora(settings) -> None:
+    app = create_app(settings)
+    with TestClient(app) as client:
+        app.state.container.seed_demo()
+
+        response = client.post("/collect/demo")
+        assert response.status_code == 200
+        assert "Coleta concluída: Seguradora Demo." in response.text
+
+        missing = client.post("/collect/inexistente")
+        assert missing.status_code == 404

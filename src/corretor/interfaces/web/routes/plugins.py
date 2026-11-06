@@ -20,14 +20,18 @@ def plugins(
     templates: Jinja2Templates = Depends(get_templates),
 ):
     health = store.list_insurer_health(container.stale_before())
+    manifests = container.plugins.manifests()
+    manifest_slugs = {manifest.slug for manifest in manifests}
+    orphan_insurers = [item for item in health if item.slug not in manifest_slugs]
     return templates.TemplateResponse(
         request=request,
         name="plugins.html",
         context={
             "request": request,
-            "manifests": container.plugins.manifests(),
+            "manifests": manifests,
             "plugin_errors": container.plugins.errors,
             "health_by_slug": {item.slug: item for item in health},
+            "orphan_insurers": orphan_insurers,
             "bradesco_state_exists": container.settings.bradesco_state_path.exists(),
             "bradesco_state_path": container.settings.bradesco_state_path,
         },
