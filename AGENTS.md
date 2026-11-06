@@ -394,6 +394,9 @@ DETECTADA → EM_ANALISE → AVISADA → REGULARIZADA
 - Página de detalhe da pendência com formulário completo e histórico de eventos.
 - Exportação CSV com os filtros atuais.
 - Página `/plugins` lista plugins carregados, versões, status e erros.
+- `GET /health` e `GET /healthz` expõem o mesmo status JSON (banco,
+  seguradoras desatualizadas/falhas e erros de plugin); `503` quando o banco
+  está indisponível. `/health` existe para sondas de infraestrutura.
 - Página `/sessions` lista o status da sessão por portal e permite renovar:
   o botão abre o navegador, espera o login manual, salva o `state.json`
   automaticamente e faz polling do resultado. Também permite **forçar a

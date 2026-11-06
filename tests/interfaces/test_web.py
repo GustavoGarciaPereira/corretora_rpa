@@ -42,6 +42,10 @@ def test_painel_coleta_e_workflow(settings) -> None:
         assert health.status_code == 200
         assert health.json()["database"] is True
 
+        health_alias = client.get("/health")
+        assert health_alias.status_code == 200
+        assert health_alias.json()["database"] is True
+
         collect = client.post("/collect")
         assert collect.status_code == 200
         assert "Coleta concluída" in collect.text

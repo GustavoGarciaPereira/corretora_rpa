@@ -76,7 +76,7 @@ caminho completo de coleta, sem depender de portal real.
    - FastAPI + Jinja + HTMX vendorizado.
    - Painel com cards, filtros, tabela, atualização inline de status.
    - Página de detalhe com histórico.
-   - Páginas `/plugins`, `/runs`, `/healthz`.
+   - Páginas `/plugins`, `/runs`, `/health` (alias `/healthz`).
    - Exportação CSV.
 
 7. **CLI**

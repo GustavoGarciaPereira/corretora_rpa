@@ -13,6 +13,7 @@ from ..dependencies import get_container, get_store
 router = APIRouter()
 
 
+@router.get("/health")
 @router.get("/healthz")
 def healthz(
     store: SqlAlchemyStore = Depends(get_store),
