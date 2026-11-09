@@ -1,0 +1,38 @@
+{% set status = renewal.status %}
+<div id="renewal-watch-{{ slug }}" class="renewal-watch" aria-live="polite"
+     {% if status == 'running' %}
+     hx-get="/renewal/{{ slug }}/status"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML"
+     {% elif status == 'success' %}
+     hx-post="/collect/{{ slug }}?auto_renew=false"
+     hx-trigger="load"
+     hx-target="#dashboard-content"
+     hx-swap="outerHTML"
+     hx-indicator="#loading"
+     {% endif %}>
+  {% if status == 'running' %}
+  <div class="flash warning">
+    <strong>Renovando conexão…</strong>
+    {{ renewal.message }}
+  </div>
+  <p class="muted small">
+    A coleta será repetida automaticamente quando o login terminar.
+  </p>
+  {% elif status == 'success' %}
+  <div class="flash success">
+    <strong>Conexão renovada.</strong> Coletando os dados de {{ name }}…
+  </div>
+  {% elif status == 'idle' %}
+  <div class="flash warning">
+    A renovação não está em andamento.
+    <a href="/sessions">Abrir Conexões</a>.
+  </div>
+  {% else %}
+  <div class="flash error">
+    <strong>Não foi possível renovar a conexão com {{ name }}.</strong>
+    {{ renewal.message }}
+    <a href="/sessions">Renovar manualmente</a>.
+  </div>
+  {% endif %}
+</div>

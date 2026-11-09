@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -40,6 +41,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
     app.state.container = container
+
+    @app.middleware("http")
+    async def log_request_duration(request: Request, call_next):
+        started = time.perf_counter()
+        response = await call_next(request)
+        if not request.url.path.startswith("/static/"):
+            duration_ms = (time.perf_counter() - started) * 1000
+            logger.info(
+                "%s %s -> %s em %.0f ms",
+                request.method,
+                request.url.path,
+                response.status_code,
+                duration_ms,
+            )
+        return response
 
     base_dir = Path(__file__).resolve().parent
     static_dir = base_dir / "static"

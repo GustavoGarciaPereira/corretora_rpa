@@ -14,6 +14,7 @@ class CollectionOutcome:
     new_count: int = 0
     resolved_count: int = 0
     error: str = ""
+    renewal_started: bool = False
 
     @property
     def ok(self) -> bool:

@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 
 from corretor.application.dto import OPEN_FILTER, InsurerHealth, PendencyFilters
 from corretor.domain.enums import InsurerState, PendencyKind, WorkflowStatus
-from corretor.infrastructure.container import Container
+from corretor.infrastructure.container import AUTO_RENEW_SLUGS, Container
 from corretor.infrastructure.persistence import SqlAlchemyStore
 
 
@@ -103,6 +103,18 @@ def _is_filtered(filters: PendencyFilters) -> bool:
     )
 
 
+def _active_renewal_watch(container: Container, health: list[InsurerHealth]) -> list[dict]:
+    if container.renewal.status().status != "running":
+        return []
+    names = {item.slug: item.name for item in health}
+    for manifest in container.plugins.manifests():
+        if manifest.slug in AUTO_RENEW_SLUGS:
+            names.setdefault(manifest.slug, manifest.name)
+    return [
+        {"slug": slug, "name": names[slug]} for slug in sorted(AUTO_RENEW_SLUGS) if slug in names
+    ]
+
+
 def dashboard_context(
     request: Request,
     store: SqlAlchemyStore,
@@ -132,6 +144,7 @@ def dashboard_context(
         "message": message,
         "message_kind": message_kind,
         "error_items": _error_items(health),
+        "renewal_watch": _active_renewal_watch(container, health),
     }
 
 
@@ -146,6 +159,7 @@ def render_dashboard(
     message: str = "",
     message_kind: str = "success",
     attention: list | None = None,
+    renewal_watch: list[dict] | None = None,
 ):
     context = dashboard_context(
         request,
@@ -156,5 +170,6 @@ def render_dashboard(
         message_kind=message_kind,
     )
     context["attention"] = attention or []
+    context["renewal_watch"] = renewal_watch or context.get("renewal_watch", [])
     name = "partials/dashboard_content.html" if partial else "dashboard.html"
     return templates.TemplateResponse(request=request, name=name, context=context)

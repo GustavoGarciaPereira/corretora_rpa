@@ -16,6 +16,14 @@ from .common import filters_from_query, render_dashboard
 router = APIRouter()
 
 
+def _renewal_watch(outcomes) -> list[dict]:
+    return [
+        {"slug": outcome.insurer_slug, "name": outcome.insurer_name}
+        for outcome in outcomes
+        if outcome.renewal_started
+    ]
+
+
 @router.get("/", response_class=HTMLResponse)
 def index(
     request: Request,
@@ -50,15 +58,31 @@ def dashboard_partial(
 @router.post("/collect", response_class=HTMLResponse)
 def collect_now(
     request: Request,
+    auto_renew: bool = True,
     store: SqlAlchemyStore = Depends(get_store),
     container: Container = Depends(get_container),
     templates: Jinja2Templates = Depends(get_templates),
 ):
-    outcomes = container.collect_all()
+    outcomes = container.collect_all(auto_renew=auto_renew, wait_for_renewal=False)
     successes = sum(1 for outcome in outcomes if outcome.ok)
     failed_outcomes = [outcome for outcome in outcomes if not outcome.ok]
-    attention = [outcome for outcome in outcomes if outcome.status is RunStatus.NEEDS_ATTENTION]
-    if not outcomes:
+    renewal_watch = _renewal_watch(outcomes)
+    attention = [
+        outcome
+        for outcome in outcomes
+        if outcome.status is RunStatus.NEEDS_ATTENTION and not outcome.renewal_started
+    ]
+    if renewal_watch:
+        names = ", ".join(item["name"] for item in renewal_watch)
+        if successes:
+            message = (
+                f"Coleta concluída em {successes} seguradora(s). "
+                f"Renovando conexão com {names} em segundo plano…"
+            )
+        else:
+            message = f"Sessão expirada em {names}. Renovando conexão em segundo plano…"
+        kind = "warning"
+    elif not outcomes:
         message = "Nenhuma seguradora ativa para coletar."
         kind = "warning"
     elif failed_outcomes:
@@ -80,6 +104,7 @@ def collect_now(
         message=message,
         message_kind=kind,
         attention=attention,
+        renewal_watch=renewal_watch,
     )
 
 
@@ -87,17 +112,26 @@ def collect_now(
 def collect_one(
     slug: str,
     request: Request,
+    auto_renew: bool = True,
     store: SqlAlchemyStore = Depends(get_store),
     container: Container = Depends(get_container),
     templates: Jinja2Templates = Depends(get_templates),
 ):
     try:
-        outcome = container.collect(slug)
+        outcome = container.collect(slug, auto_renew=auto_renew, wait_for_renewal=False)
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    attention = [outcome] if outcome.status is RunStatus.NEEDS_ATTENTION else []
-    if outcome.ok:
+    renewal_watch = _renewal_watch([outcome])
+    attention = (
+        [outcome]
+        if outcome.status is RunStatus.NEEDS_ATTENTION and not outcome.renewal_started
+        else []
+    )
+    if outcome.renewal_started:
+        message = f"Sessão expirada em {outcome.insurer_name}. Renovando conexão em segundo plano…"
+        kind = "warning"
+    elif outcome.ok:
         message = f"Coleta concluída: {outcome.insurer_name}."
         kind = "success"
     elif outcome.status is RunStatus.NEEDS_ATTENTION:
@@ -116,6 +150,7 @@ def collect_one(
         message=message,
         message_kind=kind,
         attention=attention,
+        renewal_watch=renewal_watch,
     )
 
 

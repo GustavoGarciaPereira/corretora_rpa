@@ -194,9 +194,13 @@ A página `/sessions` também tem **Forçar expiração da sessão**: ela remove
 `state.json` local para testar o fluxo de renovação sem esperar o portal expirar.
 
 Além do botão, a **coleta automática e o “Coletar agora”** tentam renovar a
-sessão sozinhos quando ela expira: fazem o login em background e repetem a
-coleta se a renovação funcionar. Não é necessário clicar em “Renovar” no fluxo
-normal.
+sessão sozinhos quando ela expira. No painel, o `POST /collect` **não espera**
+o login: mostra “Renovando conexão…”, faz polling do resultado e repete a
+coleta quando a sessão é renovada. Só um worker de renovação roda por vez; após
+uma falha, novas tentativas automáticas aguardam o cooldown
+(`BRADESCO_AUTO_LOGIN_COOLDOWN_S`, padrão 300s). O worker também falha rápido
+quando o layout esperado não aparece, gravando URL, título e screenshot para
+diagnóstico.
 
 Se o Bradesco exigir **reCAPTCHA/MFA**, o sistema não contorna: marca o status
 `captcha` e oferece **Renovar manualmente**. Para Vault, use

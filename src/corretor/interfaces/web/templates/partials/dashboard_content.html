@@ -28,6 +28,12 @@
 <div class="flash {{ message_kind }}">{{ message }}</div>
 {% endif %}
 
+{% for item in renewal_watch %}
+{% set slug = item.slug %}
+{% set name = item.name %}
+{% include "partials/renewal_watch.html" %}
+{% endfor %}
+
 {% if error_items %}
 <section class="panel error-panel" aria-labelledby="error-title">
   <div class="panel-header">

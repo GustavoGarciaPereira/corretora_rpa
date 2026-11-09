@@ -281,8 +281,21 @@ trata esse caminho. A sessão só é salva quando o path da URL contém
   `BRADESCO_LOGIN_PASSWORD` injetados por Vault.
 - Se o portal exigir reCAPTCHA/MFA, o worker retorna `captcha` e **não
   contorna**; a UI oferece a renovação manual.
+- **Fail-fast:** depois do CNPJ, o worker espera no máximo ~15s pela segunda
+  página, por captcha ou por erro de credencial. Se nada esperado aparecer,
+  grava `error` com URL, título e screenshot (`data/sessions/bradesco-renewal.png`),
+  em vez de aguardar o timeout inteiro. O screenshot pode conter CNPJ/CPF
+  preenchidos; fica local, fora do Git, e deve seguir a retenção de evidências.
 - A coleta automática e o “Coletar agora” também tentam renovar sozinhos
   quando a sessão expira (`NEEDS_ATTENTION`) e repetem a coleta após sucesso.
+  No `POST /collect` a resposta **não espera** a renovação: o painel mostra
+  “Renovando conexão…”, consulta `/renewal/bradesco/status` a cada 2s e, ao
+  concluir, repete a coleta automaticamente. O botão por seguradora segue o
+  mesmo fluxo.
+- **Lock e cooldown:** apenas um worker de renovação roda por vez. Após uma
+  falha (`error`, `captcha`, `credentials`), novas tentativas automáticas ficam
+  bloqueadas por `BRADESCO_AUTO_LOGIN_COOLDOWN_S` (padrão 300s); a renovação
+  manual em `/sessions` pode ser feita imediatamente.
 - O botão **Forçar expiração da sessão** remove o `state.json` local e o
   resultado da renovação para testar o fluxo sem esperar o portal expirar.
 - O worker não usa a senha em argumentos de linha de comando e não a grava em

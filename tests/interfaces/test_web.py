@@ -152,7 +152,7 @@ def test_modal_de_sessao_expirada(settings, monkeypatch) -> None:
         monkeypatch.setattr(
             app.state.container,
             "collect_all",
-            lambda: [
+            lambda **kwargs: [
                 CollectionOutcome(
                     insurer_slug="bradesco",
                     insurer_name="Bradesco Seguros",
@@ -287,3 +287,133 @@ def test_coletar_uma_seguradora(settings) -> None:
 
         missing = client.post("/collect/inexistente")
         assert missing.status_code == 404
+
+
+def test_collect_nao_bloqueia_e_mostra_renovacao(settings, monkeypatch) -> None:
+    app = create_app(settings)
+    with TestClient(app) as client:
+        container = app.state.container
+        calls = {}
+
+        def fake_collect_all(**kwargs):
+            calls.update(kwargs)
+            return [
+                CollectionOutcome(
+                    insurer_slug="bradesco",
+                    insurer_name="Bradesco Seguros",
+                    status=RunStatus.NEEDS_ATTENTION,
+                    error="sessão expirada",
+                    renewal_started=True,
+                )
+            ]
+
+        monkeypatch.setattr(container, "collect_all", fake_collect_all)
+        response = client.post("/collect")
+
+        assert response.status_code == 200
+        assert calls == {"auto_renew": True, "wait_for_renewal": False}
+        assert "Renovando conexão" in response.text
+        assert 'hx-get="/renewal/bradesco/status"' in response.text
+        assert "modal-overlay" not in response.text
+
+
+def test_watcher_de_renovacao_consulta_e_dispara_coleta(settings, monkeypatch) -> None:
+    from corretor.infrastructure.renewal import RenewalStatus
+
+    app = create_app(settings)
+    with TestClient(app) as client:
+        container = app.state.container
+
+        monkeypatch.setattr(
+            container.renewal,
+            "status",
+            lambda: RenewalStatus("running", "entrando no portal"),
+        )
+        running = client.get("/renewal/bradesco/status")
+        assert running.status_code == 200
+        assert "Renovando conexão" in running.text
+        assert 'hx-trigger="every 2s"' in running.text
+
+        monkeypatch.setattr(
+            container.renewal,
+            "status",
+            lambda: RenewalStatus("success", "sessão salva"),
+        )
+        success = client.get("/renewal/bradesco/status")
+        assert success.status_code == 200
+        assert "Conexão renovada" in success.text
+        assert 'hx-post="/collect/bradesco?auto_renew=false"' in success.text
+        assert 'hx-trigger="load"' in success.text
+
+        monkeypatch.setattr(
+            container.renewal,
+            "status",
+            lambda: RenewalStatus("error", "tempo esgotado"),
+        )
+        failed = client.get("/renewal/bradesco/status")
+        assert failed.status_code == 200
+        assert "Não foi possível renovar" in failed.text
+        assert "Renovar manualmente" in failed.text
+
+        assert client.get("/renewal/outro/status").status_code == 404
+
+
+def test_dashboard_mostra_renovacao_em_andamento_apos_refresh(settings, monkeypatch) -> None:
+    from corretor.infrastructure.renewal import RenewalStatus
+
+    app = create_app(settings)
+    with TestClient(app) as client:
+        monkeypatch.setattr(
+            app.state.container.renewal,
+            "status",
+            lambda: RenewalStatus("running", "entrando no portal"),
+        )
+
+        home = client.get("/")
+        assert home.status_code == 200
+        assert 'hx-get="/renewal/bradesco/status"' in home.text
+
+        partial = client.get("/?status=ABERTAS", headers={"HX-Request": "true"})
+        assert partial.status_code == 200
+        assert 'hx-get="/renewal/bradesco/status"' in partial.text
+
+
+def test_retry_da_renovacao_nao_dispara_nova_renovacao(settings, monkeypatch) -> None:
+    app = create_app(settings)
+    with TestClient(app) as client:
+        container = app.state.container
+        calls = {}
+
+        def fake_collect(slug, **kwargs):
+            calls.update(kwargs)
+            return CollectionOutcome(
+                insurer_slug=slug,
+                insurer_name="Bradesco Seguros",
+                status=RunStatus.SUCCESS,
+                items_found=1,
+            )
+
+        monkeypatch.setattr(container, "collect", fake_collect)
+        response = client.post("/collect/bradesco?auto_renew=false")
+
+        assert response.status_code == 200
+        assert calls == {"auto_renew": False, "wait_for_renewal": False}
+        assert "Coleta concluída: Bradesco Seguros." in response.text
+
+
+def test_favicon_e_log_de_duracao(settings, caplog) -> None:
+    import logging
+
+    caplog.set_level(logging.INFO, logger="corretor.interfaces.web.app")
+    app = create_app(settings)
+    with TestClient(app) as client:
+        favicon = client.get("/static/favicon.svg")
+        assert favicon.status_code == 200
+        assert "image/svg+xml" in favicon.headers["content-type"]
+
+        home = client.get("/")
+        assert home.status_code == 200
+        assert "favicon.svg" in home.text
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("GET / -> 200 em " in message for message in messages)

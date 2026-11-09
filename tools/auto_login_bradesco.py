@@ -68,6 +68,60 @@ async def _credential_error(page) -> bool:
     return any(term in text for term in ("inválid", "incorret", "não confere", "não encontrad"))
 
 
+async def _login_step(page) -> str | None:
+    if await is_logged_in_page(page):
+        return "success"
+    if await _captcha_visible(page):
+        return "captcha"
+    if await _credential_error(page):
+        return "credentials"
+    if await _visible(page, "#input_senha"):
+        return "password"
+    if await _visible(page, "#senha"):
+        return "first_page_password"
+    return None
+
+
+async def _wait_for_login_step(page, timeout: float) -> str | None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        step = await _login_step(page)
+        if step is not None:
+            return step
+        await page.wait_for_timeout(500)
+    return None
+
+
+async def _capture_screenshot(page, result_path: Path) -> str:
+    screenshot_path = result_path.with_suffix(".png")
+    try:
+        await page.screenshot(path=str(screenshot_path), full_page=True)
+    except Exception:  # noqa: BLE001
+        return ""
+    return str(screenshot_path)
+
+
+async def _unexpected_state(
+    page,
+    result_path: Path,
+    started_at: datetime,
+    stage: str,
+) -> int:
+    try:
+        title = await page.title()
+    except Exception:  # noqa: BLE001
+        title = ""
+    screenshot = await _capture_screenshot(page, result_path)
+    details = f"layout inesperado {stage} (URL: {page.url}"
+    if title:
+        details += f"; título: {title}"
+    if screenshot:
+        details += f"; screenshot: {screenshot}"
+    details += ")"
+    write_result(result_path, "error", details, started_at)
+    return 5
+
+
 async def auto_login(args: argparse.Namespace) -> int:
     started_at = datetime.now(UTC)
     result_path = Path(args.result).expanduser()
@@ -115,17 +169,33 @@ async def auto_login(args: argparse.Namespace) -> int:
                     pass
 
                 # Primeira página: CNPJ/login da corretora.
-                await page.wait_for_selector("#CpfCnpjTelaInicial", state="visible", timeout=30_000)
+                try:
+                    await page.wait_for_selector(
+                        "#CpfCnpjTelaInicial", state="visible", timeout=30_000
+                    )
+                except Exception:  # noqa: BLE001 - layout inesperado
+                    return await _unexpected_state(
+                        page, result_path, started_at, "na página inicial"
+                    )
                 await page.fill("#CpfCnpjTelaInicial", credentials.login)
                 continue_button = page.locator("#tag_Home_Login-Continuar")
-                if await continue_button.count() and await continue_button.is_visible():
+                try:
+                    await continue_button.wait_for(state="visible", timeout=10_000)
                     await continue_button.click()
+                except Exception:  # noqa: BLE001 - layout inesperado
+                    return await _unexpected_state(
+                        page, result_path, started_at, "antes de continuar (CNPJ)"
+                    )
 
                 deadline = time.monotonic() + args.timeout
+                step = await _wait_for_login_step(page, timeout=15)
+                if step is None:
+                    return await _unexpected_state(page, result_path, started_at, "após o CNPJ")
+
                 submitted_password = False
                 submitted_cpf = False
                 while time.monotonic() < deadline:
-                    if await is_logged_in_page(page):
+                    if step == "success":
                         temporary = state_path.with_suffix(state_path.suffix + ".tmp")
                         await context.storage_state(path=str(temporary))
                         os.replace(temporary, state_path)
@@ -136,7 +206,7 @@ async def auto_login(args: argparse.Namespace) -> int:
                             started_at,
                         )
                         return 0
-                    if await _captcha_visible(page):
+                    if step == "captcha":
                         write_result(
                             result_path,
                             "captcha",
@@ -144,7 +214,7 @@ async def auto_login(args: argparse.Namespace) -> int:
                             started_at,
                         )
                         return 3
-                    if await _credential_error(page):
+                    if step == "credentials":
                         write_result(
                             result_path,
                             "credentials",
@@ -154,30 +224,48 @@ async def auto_login(args: argparse.Namespace) -> int:
                         return 4
 
                     # Segunda página: CPF do usuário + senha.
-                    if not submitted_cpf and await _visible(page, "#input_senha"):
-                        await page.fill("#input_cpf_cnpj", credentials.user)
-                        await page.fill("#input_senha", credentials.password)
-                        await page.click("#loginButton2")
+                    if step == "password" and not submitted_cpf:
+                        try:
+                            await page.fill("#input_cpf_cnpj", credentials.user, timeout=5_000)
+                            await page.fill("#input_senha", credentials.password, timeout=5_000)
+                            await page.click("#loginButton2", timeout=5_000)
+                        except Exception:  # noqa: BLE001 - layout inesperado
+                            return await _unexpected_state(
+                                page,
+                                result_path,
+                                started_at,
+                                "ao preencher CPF/senha",
+                            )
                         submitted_cpf = True
                         await page.wait_for_timeout(1000)
+                        step = await _login_step(page)
                         continue
 
                     # Alguns perfis pedem a senha ainda na primeira página.
-                    if not submitted_password and await _visible(page, "#senha"):
-                        await page.fill("#senha", credentials.password)
-                        await page.click("#tag_Home_Login-entrar")
+                    if step == "first_page_password" and not submitted_password:
+                        try:
+                            await page.fill("#senha", credentials.password, timeout=5_000)
+                            await page.click("#tag_Home_Login-entrar", timeout=5_000)
+                        except Exception:  # noqa: BLE001 - layout inesperado
+                            return await _unexpected_state(
+                                page,
+                                result_path,
+                                started_at,
+                                "ao preencher a senha",
+                            )
                         submitted_password = True
                         await page.wait_for_timeout(1000)
+                        step = await _login_step(page)
                         continue
 
                     await page.wait_for_timeout(1000)
+                    step = await _login_step(page)
 
-                write_result(
-                    result_path,
-                    "error",
-                    "tempo esgotado aguardando o login automático",
-                    started_at,
-                )
+                screenshot = await _capture_screenshot(page, result_path)
+                message = "tempo esgotado aguardando o login automático"
+                if screenshot:
+                    message += f"; screenshot: {screenshot}"
+                write_result(result_path, "error", message, started_at)
                 return 5
             finally:
                 await context.close()

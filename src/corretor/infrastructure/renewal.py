@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -13,6 +14,7 @@ from .config import Settings
 from .credentials import credentials_available
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
+LOGIN_FAILURE_STATUSES = frozenset({"error", "captcha", "credentials"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +37,7 @@ class SessionRenewalManager:
         self.settings = settings
         self.result_path = settings.bradesco_state_path.parent / "bradesco-renewal.json"
         self._process: subprocess.Popen | None = None
+        self._lock = threading.Lock()
 
     def _write(
         self,
@@ -136,6 +139,18 @@ class SessionRenewalManager:
         except OSError:
             return False
 
+    def recent_failure(self) -> RenewalStatus | None:
+        """Última falha automática ainda dentro da janela de cooldown."""
+        result = self._read()
+        if result is None or result.status not in LOGIN_FAILURE_STATUSES:
+            return None
+        if result.finished_at is None:
+            return None
+        age = (datetime.now(UTC) - result.finished_at).total_seconds()
+        if age >= self.settings.bradesco_auto_login_cooldown_s:
+            return None
+        return result
+
     def auto_available(self) -> bool:
         return (
             self.settings.session_renewal_enabled
@@ -151,8 +166,11 @@ class SessionRenewalManager:
         return existed
 
     def wait(self, timeout: float | None = None) -> RenewalStatus:
+        # O worker pode gastar até ~30s na página inicial e ~10s no botão
+        # Continuar antes de iniciar o loop de login; o buffer evita declarar
+        # timeout enquanto o navegador ainda está trabalhando.
         deadline = time.monotonic() + (
-            timeout if timeout is not None else self.settings.bradesco_auto_login_timeout_s + 15
+            timeout if timeout is not None else self.settings.bradesco_auto_login_timeout_s + 60
         )
         while time.monotonic() < deadline:
             status = self.status()
@@ -162,80 +180,86 @@ class SessionRenewalManager:
         return RenewalStatus("error", "tempo esgotado aguardando a renovação automática")
 
     def auto_renew(self) -> RenewalStatus:
-        status = self.start(auto=True)
+        status = self.start(auto=True, respect_cooldown=True)
         if status.status == "running":
             status = self.wait()
         return status
 
-    def start(self, auto: bool = False) -> RenewalStatus:
-        current = self.status()
-        if current.status in {"disabled", "running"}:
-            return current
+    def start(self, auto: bool = False, *, respect_cooldown: bool = False) -> RenewalStatus:
+        with self._lock:
+            current = self.status()
+            if current.status in {"disabled", "running"}:
+                return current
+            if auto and respect_cooldown:
+                recent = self.recent_failure()
+                if recent is not None:
+                    return recent
 
-        if auto:
-            if not self.settings.bradesco_auto_login_enabled:
+            if auto:
+                if not self.settings.bradesco_auto_login_enabled:
+                    return self._write(
+                        "error",
+                        "login automático desabilitado; use a renovação manual",
+                    )
+                if not credentials_available(self.settings):
+                    return self._write(
+                        "credentials",
+                        "credenciais não configuradas; cadastre no cofre "
+                        "(corretor credentials set bradesco)",
+                    )
+                script = "auto_login_bradesco.py"
+                message = (
+                    "tentando login automático em background; se houver captcha/MFA, "
+                    "renove manualmente"
+                )
+            else:
+                script = "renew_bradesco.py"
+                message = "abrindo navegador; faça o login manual no portal"
+
+            self.result_path.parent.mkdir(parents=True, exist_ok=True)
+            self.result_path.unlink(missing_ok=True)
+            started_at = datetime.now(UTC)
+            self._write("running", message, started_at=started_at)
+
+            command = [
+                sys.executable,
+                str(PROJECT_ROOT / "tools" / script),
+                "--state",
+                str(self.settings.bradesco_state_path),
+                "--result",
+                str(self.result_path),
+                "--url",
+                self.settings.bradesco_login_url,
+                "--timeout",
+                str(
+                    self.settings.bradesco_auto_login_timeout_s
+                    if auto
+                    else self.settings.session_renewal_timeout_s
+                ),
+            ]
+            try:
+                self._process = subprocess.Popen(
+                    command,
+                    cwd=str(PROJECT_ROOT),
+                    env=os.environ.copy(),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except OSError as exc:
                 return self._write(
                     "error",
-                    "login automático desabilitado; use a renovação manual",
+                    f"não foi possível abrir o navegador ({exc.__class__.__name__})",
+                    started_at=started_at,
                 )
-            if not credentials_available(self.settings):
-                return self._write(
-                    "credentials",
-                    "credenciais não configuradas; cadastre no cofre "
-                    "(corretor credentials set bradesco)",
+
+            # Se o worker ainda não terminou, registra o PID para detectar processo
+            # órfão após reload/restart do servidor.
+            current = self._read()
+            if current is not None and current.status == "running":
+                self._write(
+                    "running",
+                    message,
+                    started_at=started_at,
+                    pid=self._process.pid,
                 )
-            script = "auto_login_bradesco.py"
-            message = (
-                "tentando login automático em background; se houver captcha/MFA, renove manualmente"
-            )
-        else:
-            script = "renew_bradesco.py"
-            message = "abrindo navegador; faça o login manual no portal"
-
-        self.result_path.parent.mkdir(parents=True, exist_ok=True)
-        self.result_path.unlink(missing_ok=True)
-        started_at = datetime.now(UTC)
-        self._write("running", message, started_at=started_at)
-
-        command = [
-            sys.executable,
-            str(PROJECT_ROOT / "tools" / script),
-            "--state",
-            str(self.settings.bradesco_state_path),
-            "--result",
-            str(self.result_path),
-            "--url",
-            self.settings.bradesco_login_url,
-            "--timeout",
-            str(
-                self.settings.bradesco_auto_login_timeout_s
-                if auto
-                else self.settings.session_renewal_timeout_s
-            ),
-        ]
-        try:
-            self._process = subprocess.Popen(
-                command,
-                cwd=str(PROJECT_ROOT),
-                env=os.environ.copy(),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except OSError as exc:
-            return self._write(
-                "error",
-                f"não foi possível abrir o navegador ({exc.__class__.__name__})",
-                started_at=started_at,
-            )
-
-        # Se o worker ainda não terminou, registra o PID para detectar processo
-        # órfão após reload/restart do servidor.
-        current = self._read()
-        if current is not None and current.status == "running":
-            self._write(
-                "running",
-                message,
-                started_at=started_at,
-                pid=self._process.pid,
-            )
-        return self.status()
+            return self.status()

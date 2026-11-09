@@ -392,6 +392,9 @@ DETECTADA → EM_ANALISE → AVISADA → REGULARIZADA
   HTMX, para não perder foco durante a digitação.
 - `GET /dashboard` devolve partial; `GET /` devolve a página completa.
 - `POST /collect` dispara coleta e devolve o partial atualizado com mensagem.
+  Se a sessão do Bradesco expirou, a renovação inicia em segundo plano e o
+  painel faz polling de `/renewal/{slug}/status`; ao concluir, a coleta é
+  repetida automaticamente com `?auto_renew=false`.
 - Atualização de status na linha via `hx-post` + swap da `<tr>`.
 - Página de detalhe da pendência com formulário completo e histórico de eventos.
 - Exportação CSV com os filtros atuais.
@@ -404,7 +407,9 @@ DETECTADA → EM_ANALISE → AVISADA → REGULARIZADA
   automaticamente e faz polling do resultado. Também permite **forçar a
   expiração** removendo o `state.json` local e o resultado da renovação para
   testar o fluxo. Falha de sessão no `POST
-  /collect` abre um aviso com os portais afetados e link para `/sessions`.
+  /collect` não bloqueia a resposta: o painel mostra “Renovando conexão…”, faz
+  polling do resultado e repete a coleta quando o login termina. Se a renovação
+  falhar, o painel aponta para `/sessions` e mantém o erro completo.
   O endpoint de renovação abre um navegador na máquina do servidor; não expor
   a aplicação publicamente sem autenticação.
 - O painel tem a seção **“Precisa de atenção”** com estado por seguradora
@@ -469,14 +474,21 @@ Login automático: `BRADESCO_AUTO_LOGIN_ENABLED`,
 `BRADESCO_CREDENTIAL_SOURCE` (`keyring|env`), `BRADESCO_KEYRING_SERVICE`,
 `BRADESCO_KEYRING_USERNAME`, `BRADESCO_LOGIN` (CNPJ da primeira página),
 `BRADESCO_LOGIN_USER` (CPF da segunda página), `BRADESCO_LOGIN_PASSWORD`,
-`BRADESCO_AUTO_LOGIN_HEADLESS`, `BRADESCO_AUTO_LOGIN_TIMEOUT_S`. Credenciais do portal ficam no keyring/Vault
+`BRADESCO_AUTO_LOGIN_HEADLESS`, `BRADESCO_AUTO_LOGIN_TIMEOUT_S`,
+`BRADESCO_AUTO_LOGIN_COOLDOWN_S`. Credenciais do portal ficam no keyring/Vault
 (nunca em código, `.env` commitado ou logs). O worker
 `tools/auto_login_bradesco.py` tenta preencher o login; se houver
-captcha/MFA, retorna `captcha` e a UI oferece renovação manual. A coleta
-automática e o `POST /collect` tentam `auto_renew()` quando o resultado é
-`NEEDS_ATTENTION` e repetem a coleta em caso de sucesso — o fluxo normal não
-exige clique em “Renovar”. Não contornar captcha/MFA nem expor o endpoint
-publicamente sem autenticação.
+captcha/MFA, retorna `captcha` e a UI oferece renovação manual. O worker falha
+rápido (com URL, título e screenshot) quando o layout esperado não aparece após
+o CNPJ, em vez de esperar o timeout inteiro. A coleta automática e o
+`POST /collect` tentam `auto_renew()` quando o resultado é `NEEDS_ATTENTION` e
+repetem a coleta em caso de sucesso — o fluxo normal não exige clique em
+“Renovar”. O `POST /collect` não espera a renovação: inicia em segundo plano e
+faz polling no painel. Um lock impede dois workers simultâneos e o cooldown
+(`BRADESCO_AUTO_LOGIN_COOLDOWN_S`, padrão 300s) evita repetir o login
+automático logo após uma falha; a renovação manual em `/sessions` ignora o
+cooldown. Não contornar captcha/MFA nem expor o endpoint publicamente sem
+autenticação.
 
 ## 10. Convenções de código
 

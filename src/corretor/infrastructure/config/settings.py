@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     bradesco_login_password: SecretStr | None = None
     bradesco_auto_login_headless: bool = True
     bradesco_auto_login_timeout_s: int = 120
+    bradesco_auto_login_cooldown_s: int = 300
     bradesco_endpoint: str = (
         "https://wwwn.bradescoseguros.com.br/pnegocios/wps/"
         "PA_BSPN-DBoardAuto-PU/api/parcelas/v1/list"

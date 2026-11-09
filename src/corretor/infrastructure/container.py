@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -11,6 +12,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 import corretor.plugins
+from corretor.application.dto import CollectionOutcome
 from corretor.application.services import CollectionService, PendencyService
 from corretor.domain.entities import PluginContext
 from corretor.domain.enums import RunStatus
@@ -23,6 +25,8 @@ from .plugins import PluginRegistry
 from .renewal import SessionRenewalManager
 
 logger = logging.getLogger(__name__)
+
+AUTO_RENEW_SLUGS = frozenset({"bradesco"})
 
 
 class Container:
@@ -81,25 +85,67 @@ class Container:
                 if insurer.last_success_at is None:
                     self.collection_service(store).collect(manifest.slug)
 
-    def collect(self, slug: str):
+    def _auto_renew_available(self, slug: str) -> bool:
+        return slug in AUTO_RENEW_SLUGS and self.renewal.auto_available()
+
+    def _start_auto_renew(self, slug: str) -> bool:
+        logger.info("sessão expirada em %s; tentando renovação automática", slug)
+        status = self.renewal.start(auto=True, respect_cooldown=True)
+        if status.status in {"running", "success"}:
+            return True
+        logger.warning(
+            "renovação automática não iniciada para %s: %s",
+            slug,
+            status.message,
+        )
+        return False
+
+    def collect(
+        self,
+        slug: str,
+        *,
+        auto_renew: bool = True,
+        wait_for_renewal: bool = True,
+    ) -> CollectionOutcome:
         with self.session() as store:
             service = self.collection_service(store)
             service.ensure_insurer(slug)
             outcome = service.collect(slug)
-        if outcome.status is RunStatus.NEEDS_ATTENTION and self.renewal.auto_available():
+        if (
+            outcome.status is not RunStatus.NEEDS_ATTENTION
+            or not auto_renew
+            or not self._auto_renew_available(slug)
+        ):
+            return outcome
+        if wait_for_renewal:
             renewal = self.renewal.auto_renew()
             if renewal.status == "success":
                 with self.session() as store:
                     outcome = self.collection_service(store).collect(slug)
+            return outcome
+        if self._start_auto_renew(slug):
+            return replace(outcome, renewal_started=True)
         return outcome
 
-    def collect_all(self):
+    def collect_all(
+        self,
+        *,
+        auto_renew: bool = True,
+        wait_for_renewal: bool = True,
+    ) -> list[CollectionOutcome]:
         with self.session() as store:
             outcomes = self.collection_service(store).collect_all()
-        if (
-            any(outcome.status is RunStatus.NEEDS_ATTENTION for outcome in outcomes)
-            and self.renewal.auto_available()
-        ):
+        if not auto_renew:
+            return outcomes
+        renewable = [
+            outcome
+            for outcome in outcomes
+            if outcome.status is RunStatus.NEEDS_ATTENTION
+            and self._auto_renew_available(outcome.insurer_slug)
+        ]
+        if not renewable:
+            return outcomes
+        if wait_for_renewal:
             logger.info("sessão expirada; tentando renovação automática")
             renewal = self.renewal.auto_renew()
             if renewal.status == "success":
@@ -108,7 +154,17 @@ class Container:
                     outcomes = self.collection_service(store).collect_all()
             else:
                 logger.warning("renovação automática não concluída: %s", renewal.message)
-        return outcomes
+            return outcomes
+        started: set[str] = set()
+        for outcome in renewable:
+            if self._start_auto_renew(outcome.insurer_slug):
+                started.add(outcome.insurer_slug)
+        if not started:
+            return outcomes
+        return [
+            replace(outcome, renewal_started=True) if outcome.insurer_slug in started else outcome
+            for outcome in outcomes
+        ]
 
     def mark_overdue(self) -> int:
         with self.session() as store:

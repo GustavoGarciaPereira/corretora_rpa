@@ -21,6 +21,13 @@ def _state(item) -> tuple[str, str]:
     return item.state.label, item.state.css_class
 
 
+def _portal_name(container: Container, slug: str) -> str:
+    for manifest in container.plugins.manifests():
+        if manifest.slug == slug:
+            return manifest.name
+    return slug.title()
+
+
 @router.get("/sessions", response_class=HTMLResponse)
 def sessions(
     request: Request,
@@ -121,3 +128,24 @@ def renewal_status(
     templates: Jinja2Templates = Depends(get_templates),
 ):
     return _renewal_response(request, templates, container, slug)
+
+
+@router.get("/renewal/{slug}/status", response_class=HTMLResponse)
+def renewal_watch_status(
+    slug: str,
+    request: Request,
+    container: Container = Depends(get_container),
+    templates: Jinja2Templates = Depends(get_templates),
+):
+    if slug != "bradesco":
+        raise HTTPException(status_code=404, detail="Renovação não configurada")
+    return templates.TemplateResponse(
+        request=request,
+        name="partials/renewal_watch_status.html",
+        context={
+            "request": request,
+            "slug": slug,
+            "name": _portal_name(container, slug),
+            "renewal": container.renewal.status(),
+        },
+    )

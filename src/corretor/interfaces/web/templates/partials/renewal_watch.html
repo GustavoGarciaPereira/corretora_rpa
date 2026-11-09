@@ -1,0 +1,14 @@
+<div id="renewal-watch-{{ slug }}" class="renewal-watch" aria-live="polite"
+     hx-get="/renewal/{{ slug }}/status"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML">
+  <div class="flash warning">
+    <strong>Renovando conexão…</strong>
+    Aguarde enquanto a conexão com {{ name }} é renovada. A coleta será repetida
+    quando o login terminar.
+  </div>
+  <p class="muted small">
+    Se o portal exigir captcha/MFA, será necessário
+    <a href="/sessions">renovar manualmente</a>.
+  </p>
+</div>
